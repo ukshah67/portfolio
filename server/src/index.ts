@@ -102,18 +102,28 @@ app.post('/api/history', async (req, res) => {
 
         const historyPromises = tickers.map(async (ticker) => {
             try {
-                // Fetch 1 month of historical data, returning daily intervals
-                const result = await yahooFinance.historical(ticker, { period1: '2000-01-01', period2: new Date(), interval: '1d' });
-                // Note: We fetch from 2000-01-01 to ensure we have data, but we'll slice/filter in the frontend or backend later.
-                // For performance, let's just fetch the requested range using from/to. 
-                // However yahoo-finance2 historical options use period1, period2.
-
-                // Better approach for '1mo': calculate date 30 days ago
-                const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                // Calculate start date based on range
+                const startDate = new Date();
+                switch (range) {
+                    case '7d':
+                        startDate.setDate(startDate.getDate() - 7);
+                        break;
+                    case '30d':
+                    case '1mo':
+                        startDate.setDate(startDate.getDate() - 30);
+                        break;
+                    case '120d':
+                        startDate.setDate(startDate.getDate() - 120);
+                        break;
+                    case '180d':
+                        startDate.setDate(startDate.getDate() - 180);
+                        break;
+                    default:
+                        startDate.setDate(startDate.getDate() - 30); // Default 30 days
+                }
 
                 const recentHistory = await yahooFinance.historical(ticker, {
-                    period1: thirtyDaysAgo,
+                    period1: startDate,
                     period2: new Date(),
                     interval: '1d'
                 });
