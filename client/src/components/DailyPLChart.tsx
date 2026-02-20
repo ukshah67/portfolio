@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { usePortfolio } from '../context/PortfolioContext';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 interface ChartDataPoint {
     date: string;
     totalValue: number;
+    [key: string]: any; // Allow dynamic ticker keys
 }
 
 const DailyPLChart: React.FC = () => {
@@ -36,7 +37,7 @@ const DailyPLChart: React.FC = () => {
                 const data: any[] = await response.json();
 
                 // Aggregate data by date
-                const dateMap = new Map<string, number>();
+                const dateMap = new Map<string, ChartDataPoint>();
 
                 data.forEach(stockData => {
                     const ticker = stockData.ticker;
@@ -51,18 +52,19 @@ const DailyPLChart: React.FC = () => {
 
                             const dayValue = day.close * totalQty;
 
-                            if (dateMap.has(dateStr)) {
-                                dateMap.set(dateStr, dateMap.get(dateStr)! + dayValue);
-                            } else {
-                                dateMap.set(dateStr, dayValue);
+                            if (!dateMap.has(dateStr)) {
+                                dateMap.set(dateStr, { date: dateStr, totalValue: 0 });
                             }
+
+                            const existing = dateMap.get(dateStr)!;
+                            existing.totalValue += dayValue;
+                            existing[ticker] = dayValue; // Save individual stock value
                         });
                     }
                 });
 
                 // Convert map to sorted array
-                const finalData: ChartDataPoint[] = Array.from(dateMap.entries())
-                    .map(([date, totalValue]) => ({ date, totalValue }))
+                const finalData: ChartDataPoint[] = Array.from(dateMap.values())
                     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
                 setChartData(finalData);
@@ -106,17 +108,45 @@ const DailyPLChart: React.FC = () => {
                                 tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
                             />
                             <Tooltip
-                                formatter={(value: any) => [`₹${Number(value).toFixed(2)}`, 'Value']}
+                                formatter={(value: any, name: any) => {
+                                    if (name === 'totalValue') return [`₹${Number(value).toFixed(2)}`, 'Total Portfolio'];
+                                    return [`₹${Number(value).toFixed(2)}`, name];
+                                }}
                                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                            />
+                            <Legend
+                                wrapperStyle={{ paddingTop: '20px' }}
+                                iconType="circle"
                             />
                             <Line
                                 type="monotone"
                                 dataKey="totalValue"
+                                name="Total Portfolio"
                                 stroke="#2563EB"
                                 strokeWidth={3}
                                 dot={false}
                                 activeDot={{ r: 6, fill: '#2563EB', stroke: '#fff', strokeWidth: 2 }}
                             />
+                            {/* Dynamically render a line for each ticker */}
+                            {Array.from(new Set(holdings.map(h => h.ticker))).map((ticker, index) => {
+                                // Generate a color based on index
+                                const colors = ['#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316'];
+                                const color = colors[index % colors.length];
+
+                                return (
+                                    <Line
+                                        key={ticker}
+                                        type="monotone"
+                                        dataKey={ticker}
+                                        name={ticker}
+                                        stroke={color}
+                                        strokeWidth={2}
+                                        dot={false}
+                                        activeDot={{ r: 4, fill: color, stroke: '#fff', strokeWidth: 2 }}
+                                        hide={true} // Hidden by default, unhide by clicking legend
+                                    />
+                                );
+                            })}
                         </LineChart>
                     </ResponsiveContainer>
                 </div>
