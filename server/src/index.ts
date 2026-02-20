@@ -6,7 +6,7 @@ import mongoose from 'mongoose';
 import Holding from './models/Holding';
 
 const app = express();
-const port = 3002;
+const port = process.env.PORT || 3002;
 const yahooFinance = new YahooFinance();
 
 app.use(cors());
