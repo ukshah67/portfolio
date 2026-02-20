@@ -94,40 +94,7 @@ const DailyPLChart: React.FC = () => {
         }
     }, [holdings, contextLoading, API_URL, range]);
 
-    // Custom Legend Component
-    const renderLegend = (props: any) => {
-        const { payload } = props;
-        const toggleLine = (dataKey: string) => {
-            setHiddenLines(prev => ({
-                ...prev,
-                [dataKey]: !prev[dataKey]
-            }));
-        };
 
-        return (
-            <div className="flex flex-wrap justify-center gap-4 mt-6 pt-4 border-t border-slate-100">
-                {payload.map((entry: any, index: number) => {
-                    const dataKey = entry.dataKey;
-                    const isTotal = dataKey === 'totalValue';
-                    const isHidden = isTotal ? false : hiddenLines[dataKey]; // Total cannot be disabled in data model easily, let's just make it always visible or handle it in state if needed. Actually let's allow toggling everything.
-                    // Let's ensure 'totalValue' is in hiddenLines if we want it toggleable. 
-                    // To keep it simple, we use the local state hiddenLines for all toggling.
-                    const currentlyHidden = hiddenLines[dataKey] ?? (isTotal ? false : true);
-
-                    return (
-                        <label key={`item-${index}`} className="flex items-center space-x-2 cursor-pointer group">
-                            <div className={`w-4 h-4 rounded flex items-center justify-center border transition-colors ${!currentlyHidden ? 'border-transparent' : 'border-slate-300 bg-white'}`} style={{ backgroundColor: !currentlyHidden ? entry.color : undefined }}>
-                                {!currentlyHidden && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-                            </div>
-                            <span className={`text-sm font-medium transition-colors ${!currentlyHidden ? 'text-slate-800' : 'text-slate-400'}`}>
-                                {entry.value === 'Total Portfolio' ? '- Total Portfolio -' : entry.value}
-                            </span>
-                        </label>
-                    );
-                })}
-            </div>
-        );
-    };
 
     // Modified click handler for legend (we do it inside the custom legend instead, but need to attach onClick manually if not using wrapper)
     // Actually the <label> with onClick handles it best. Let's update renderLegend to use onClick
