@@ -19,13 +19,15 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
     const [holdings, setHoldings] = useState<Holding[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
 
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
+
     useEffect(() => {
         fetchHoldings();
     }, []);
 
     const fetchQuote = async (ticker: string) => {
         try {
-            const response = await fetch(`http://localhost:3002/api/quote/${ticker}`);
+            const response = await fetch(`${API_URL}/api/quote/${ticker}`);
             if (!response.ok) throw new Error('Failed to fetch quote');
             const data = await response.json();
             // validate data
@@ -43,7 +45,7 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
     const fetchHoldings = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:3002/api/holdings');
+            const response = await fetch(`${API_URL}/api/holdings`);
             if (response.ok) {
                 const data = await response.json();
                 const mapped: Holding[] = data.map((h: any) => ({
@@ -76,7 +78,7 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
 
     const searchTicker = async (query: string) => {
         try {
-            const response = await fetch(`http://localhost:3002/api/search?q=${query}`);
+            const response = await fetch(`${API_URL}/api/search?q=${query}`);
             if (!response.ok) throw new Error('Failed to search ticker');
             const data = await response.json();
             console.log('Search Raw Data:', data);
@@ -110,7 +112,7 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
         }
 
         try {
-            const response = await fetch('http://localhost:3002/api/holdings', {
+            const response = await fetch(`${API_URL}/api/holdings`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ticker, qty, avgCost: price, purchaseDate: date, owner })
@@ -130,7 +132,7 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
 
     const removeHolding = async (id: string) => {
         try {
-            await fetch(`http://localhost:3002/api/holdings/${id}`, { method: 'DELETE' });
+            await fetch(`${API_URL}/api/holdings/${id}`, { method: 'DELETE' });
             setHoldings(prev => prev.filter(h => h._id !== id));
         } catch (error) {
             console.error('Error deleting holding:', error);
