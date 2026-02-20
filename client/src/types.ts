@@ -13,6 +13,7 @@ export interface Holding {
 export interface PortfolioContextType {
     holdings: Holding[];
     addHolding: (ticker: string, qty: number, price: number, date: string, owner: string) => Promise<boolean>; // Returns success status
+    editHolding: (id: string, qty: number, price: number, date: string, owner: string) => Promise<boolean>;
     searchTicker: (query: string) => Promise<any[]>;
     removeHolding: (id: string) => void;
     refreshPrices: () => Promise<void>;

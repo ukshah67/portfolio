@@ -50,6 +50,26 @@ app.post('/api/holdings', async (req, res) => {
     }
 });
 
+// Edit holding
+app.put('/api/holdings/:id', async (req, res) => {
+    try {
+        const { qty, avgCost, purchaseDate, owner } = req.body;
+        const updatedHolding = await Holding.findByIdAndUpdate(
+            req.params.id,
+            { qty, avgCost, purchaseDate, owner },
+            { new: true } // Returns the modified document rather than the original
+        );
+
+        if (!updatedHolding) {
+            return res.status(404).json({ error: 'Holding not found' });
+        }
+        res.json(updatedHolding);
+    } catch (error) {
+        console.error('Error updating holding:', error);
+        res.status(500).json({ error: 'Failed to update holding' });
+    }
+});
+
 // Delete holding
 app.delete('/api/holdings/:id', async (req, res) => {
     try {

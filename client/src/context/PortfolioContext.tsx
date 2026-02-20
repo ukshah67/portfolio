@@ -138,6 +138,27 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
         return false;
     };
 
+    const editHolding = async (id: string, qty: number, price: number, date: string, owner: string): Promise<boolean> => {
+        setLoading(true);
+        try {
+            const response = await fetch(`${API_URL}/api/holdings/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ qty, avgCost: price, purchaseDate: date, owner })
+            });
+
+            if (response.ok) {
+                await fetchHoldings();
+                setLoading(false);
+                return true;
+            }
+        } catch (error) {
+            console.error('Error editing holding:', error);
+        }
+        setLoading(false);
+        return false;
+    };
+
     const removeHolding = async (id: string) => {
         try {
             await fetch(`${API_URL}/api/holdings/${id}`, { method: 'DELETE' });
@@ -178,6 +199,7 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
         <PortfolioContext.Provider value={{
             holdings: filteredHoldings,
             addHolding,
+            editHolding,
             searchTicker,
             removeHolding,
             refreshPrices,
