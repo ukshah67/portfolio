@@ -7,6 +7,7 @@ export interface Holding {
     name: string;
     purchaseDate: string; // ISO date string
     owner: string;
+    previousClose: number; // For Today's P/L
 }
 
 export interface PortfolioContextType {
@@ -19,4 +20,8 @@ export interface PortfolioContextType {
     totalValue: number;
     totalCost: number;
     totalPL: number;
+    todaysPL: number;
+    selectedOwner: string;
+    setSelectedOwner: (owner: string) => void;
+    owners: string[];
 }

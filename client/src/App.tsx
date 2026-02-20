@@ -3,6 +3,8 @@ import Dashboard from './components/Dashboard';
 import AddHoldingForm from './components/AddHoldingForm';
 import HoldingsTable from './components/HoldingsTable';
 import PortfolioChart from './components/PortfolioChart';
+import DailyPLChart from './components/DailyPLChart';
+import OwnerSelector from './components/OwnerSelector';
 import { LineChart } from 'lucide-react';
 
 function App() {
@@ -19,18 +21,28 @@ function App() {
                 Portfolio Manager
               </h1>
             </div>
+            {/* The new owner selector that uses Context (must be inside Provider ideally, so moved down) */}
           </div>
         </header>
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Dashboard />
-          <PortfolioChart />
+          {/* Owner selector right above dashboard */}
+          <div className="mb-4 flex justify-end">
+            <OwnerSelector />
+          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
+          <Dashboard />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <PortfolioChart />
+            <DailyPLChart />
+          </div>
+
+          <div className="flex flex-col lg:flex-row gap-8">
+            <div className="w-full lg:w-2/3 order-1 lg:order-1">
               <HoldingsTable />
             </div>
-            <div>
+            {/* Placing it last in the DOM means on mobile flex-col it appears at the bottom! */}
+            <div className="w-full lg:w-1/3 order-2 lg:order-2">
               <AddHoldingForm />
             </div>
           </div>

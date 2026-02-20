@@ -71,6 +71,49 @@ app.get('/api/quote/:ticker', async (req, res) => {
     }
 });
 
+// Get historical data for charts
+app.post('/api/history', async (req, res) => {
+    try {
+        const { tickers, range = '1mo' } = req.body; // Expects an array of ticker strings
+
+        if (!tickers || !Array.isArray(tickers) || tickers.length === 0) {
+            return res.status(400).json({ error: 'Please provide an array of tickers' });
+        }
+
+        const historyPromises = tickers.map(async (ticker) => {
+            try {
+                // Fetch 1 month of historical data, returning daily intervals
+                const result = await yahooFinance.historical(ticker, { period1: '2000-01-01', period2: new Date(), interval: '1d' });
+                // Note: We fetch from 2000-01-01 to ensure we have data, but we'll slice/filter in the frontend or backend later.
+                // For performance, let's just fetch the requested range using from/to. 
+                // However yahoo-finance2 historical options use period1, period2.
+
+                // Better approach for '1mo': calculate date 30 days ago
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+                const recentHistory = await yahooFinance.historical(ticker, {
+                    period1: thirtyDaysAgo,
+                    period2: new Date(),
+                    interval: '1d'
+                });
+
+                return { ticker, data: recentHistory };
+            } catch (err) {
+                console.error(`Error fetching history for ${ticker}:`, err);
+                return { ticker, data: [] }; // Return empty data on error so Promise.all succeeds
+            }
+        });
+
+        const historyData = await Promise.all(historyPromises);
+        res.json(historyData);
+
+    } catch (error) {
+        console.error('Error in /api/history:', error);
+        res.status(500).json({ error: 'Failed to fetch historical data' });
+    }
+});
+
 app.get('/api/search', async (req, res) => {
     try {
         const query = req.query.q as string;

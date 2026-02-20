@@ -18,6 +18,8 @@ interface PortfolioProviderProps {
 export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }) => {
     const [holdings, setHoldings] = useState<Holding[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
+    const [selectedOwner, setSelectedOwner] = useState<string>('All');
+    const [owners, setOwners] = useState<string[]>([]);
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
 
@@ -56,8 +58,13 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
                     purchaseDate: h.purchaseDate,
                     owner: h.owner || 'Default User',
                     currentPrice: 0,
+                    previousClose: 0,
                     name: h.ticker
                 }));
+
+                // Extract unique owners
+                const uniqueOwners = Array.from(new Set(mapped.map(h => h.owner)));
+                setOwners(uniqueOwners);
 
                 // Fetch live prices
                 const holdingsWithQuotes = await Promise.all(mapped.map(async (h) => {
@@ -65,6 +72,7 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
                     return {
                         ...h,
                         currentPrice: quote?.regularMarketPrice || h.avgCost,
+                        previousClose: quote?.regularMarketPreviousClose || h.avgCost,
                         name: quote?.longName || h.ticker
                     };
                 }));
@@ -146,6 +154,7 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
             return {
                 ...h,
                 currentPrice: quote?.regularMarketPrice || h.currentPrice,
+                previousClose: quote?.regularMarketPreviousClose || h.previousClose,
                 name: quote?.longName || h.name
             };
         }));
@@ -153,12 +162,34 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
         setLoading(false);
     };
 
-    const totalCost = holdings.reduce((acc, curr) => acc + (curr.qty * curr.avgCost), 0);
-    const totalValue = holdings.reduce((acc, curr) => acc + (curr.qty * curr.currentPrice), 0);
+    const filteredHoldings = selectedOwner === 'All' ? holdings : holdings.filter(h => h.owner === selectedOwner);
+
+    const totalCost = filteredHoldings.reduce((acc, curr) => acc + (curr.qty * curr.avgCost), 0);
+    const totalValue = filteredHoldings.reduce((acc, curr) => acc + (curr.qty * curr.currentPrice), 0);
     const totalPL = totalValue - totalCost;
 
+    // Calculate Today's P/L based on previous close
+    const todaysPL = filteredHoldings.reduce((acc, curr) => {
+        const todayChange = curr.currentPrice - curr.previousClose;
+        return acc + (todayChange * curr.qty);
+    }, 0);
+
     return (
-        <PortfolioContext.Provider value={{ holdings, addHolding, searchTicker, removeHolding, refreshPrices, loading, totalValue, totalCost, totalPL }}>
+        <PortfolioContext.Provider value={{
+            holdings: filteredHoldings,
+            addHolding,
+            searchTicker,
+            removeHolding,
+            refreshPrices,
+            loading,
+            totalValue,
+            totalCost,
+            totalPL,
+            todaysPL,
+            selectedOwner,
+            setSelectedOwner,
+            owners
+        }}>
             {children}
         </PortfolioContext.Provider>
     );

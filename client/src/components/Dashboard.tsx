@@ -3,9 +3,10 @@ import { usePortfolio } from '../context/PortfolioContext';
 import { TrendingUp, TrendingDown, DollarSign, PieChart } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
-    const { totalValue, totalCost, totalPL } = usePortfolio();
+    const { totalValue, totalCost, totalPL, todaysPL } = usePortfolio();
     const plPercentage = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
     const isProfit = totalPL >= 0;
+    const isTodayProfit = todaysPL >= 0;
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -38,11 +39,19 @@ const Dashboard: React.FC = () => {
                     <div className={`p-3 rounded-lg ${isProfit ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
                         {isProfit ? <TrendingUp size={24} /> : <TrendingDown size={24} />}
                     </div>
-                    <div>
+                    <div className="flex-1">
                         <p className="text-sm text-slate-500 font-medium">Total P/L</p>
                         <h3 className={`text-2xl font-bold ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
                             {isProfit ? '+' : ''}{totalPL.toFixed(2)} ({plPercentage.toFixed(2)}%)
                         </h3>
+                        {/* Today's gain/loss subtext */}
+                        <div className="mt-2 flex items-center space-x-1">
+                            <span className="text-xs text-slate-500">Today:</span>
+                            <span className={`text-sm font-semibold flex items-center ${isTodayProfit ? 'text-green-600' : 'text-red-600'}`}>
+                                {isTodayProfit ? <TrendingUp size={12} className="mr-1" /> : <TrendingDown size={12} className="mr-1" />}
+                                ₹{Math.abs(todaysPL).toFixed(2)}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>

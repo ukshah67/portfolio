@@ -27,7 +27,8 @@ const HoldingsTable: React.FC = () => {
                 </button>
             </div>
 
-            <div className="overflow-x-auto">
+            {/* Desktop Table View (Hidden on Mobile) */}
+            <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-sm">
                     <thead className="bg-slate-50 text-slate-600 font-medium">
                         <tr>
@@ -97,6 +98,69 @@ const HoldingsTable: React.FC = () => {
                         )}
                     </tbody>
                 </table>
+            </div>
+
+            {/* Mobile Cards View (Hidden on Desktop) */}
+            <div className="md:hidden flex flex-col divide-y divide-slate-100">
+                {holdings.length === 0 ? (
+                    <div className="p-8 text-center text-slate-400">
+                        No holdings found. Add some to get started!
+                    </div>
+                ) : (
+                    holdings.map((holding, index) => {
+                        const currentValue = holding.qty * holding.currentPrice;
+                        const investment = holding.qty * holding.avgCost;
+                        const pl = currentValue - investment;
+                        const plPercent = investment > 0 ? (pl / investment) * 100 : 0;
+                        const isProfit = pl >= 0;
+
+                        return (
+                            <div key={holding._id || `${holding.ticker}-${index}`} className="p-4 bg-white">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <h3 className="font-bold text-slate-800 text-lg">{holding.ticker}</h3>
+                                        <p className="text-xs text-slate-500 leading-tight">{holding.name}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <button
+                                            onClick={() => holding._id && removeHolding(holding._id)}
+                                            className="text-slate-400 hover:text-red-600 transition-colors"
+                                        >
+                                            <Trash2 size={20} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between items-center mt-3">
+                                    <div className="flex items-center space-x-2">
+                                        <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-md font-medium">
+                                            {holding.owner}
+                                        </span>
+                                        <span className="text-xs text-slate-500">
+                                            {holding.qty} shares @ ₹{holding.avgCost.toFixed(2)}
+                                        </span>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-sm font-semibold text-slate-800">LTP: ₹{holding.currentPrice.toFixed(2)}</p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 bg-slate-50 p-3 rounded-lg flex justify-between items-center">
+                                    <div>
+                                        <p className="text-xs text-slate-500 mb-0.5">Current Value</p>
+                                        <p className="font-semibold text-slate-800">₹{currentValue.toFixed(2)}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs text-slate-500 mb-0.5">Total P/L</p>
+                                        <p className={`font-semibold ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
+                                            {isProfit ? '+' : ''}{pl.toFixed(2)} ({plPercent.toFixed(2)}%)
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
             </div>
         </div>
     );
