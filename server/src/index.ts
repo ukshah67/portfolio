@@ -83,15 +83,41 @@ app.delete('/api/holdings/:id', async (req, res) => {
 app.get('/api/quote/:ticker', async (req, res) => {
     try {
         const { ticker } = req.params;
-        const quote = await yahooFinance.quote(ticker);
+        let quote;
+
+        try {
+            // Primary method: quote()
+            quote = await yahooFinance.quote(ticker);
+        } catch (quoteError) {
+            console.warn(`Primary quote fetch failed for ${ticker}, trying fallback:`, quoteError);
+
+            // Fallback method: quoteSummary() which often works when quote() is blocked
+            const summary = await yahooFinance.quoteSummary(ticker, { modules: ['price'] });
+            if (summary && summary.price) {
+                quote = {
+                    regularMarketPrice: summary.price.regularMarketPrice,
+                    regularMarketPreviousClose: summary.price.regularMarketPreviousClose,
+                    longName: summary.price.longName || summary.price.shortName || ticker,
+                    symbol: ticker
+                };
+            } else {
+                throw quoteError; // Rethrow original error if fallback also fails
+            }
+        }
+
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
         res.setHeader('Surrogate-Control', 'no-store');
         res.json(quote);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Failed to fetch quote' });
+    } catch (error: any) {
+        const ticker = req.params.ticker;
+        console.error(`ERROR fetching quote for ${ticker}:`, error.message || error);
+        res.status(500).json({
+            error: 'Failed to fetch quote',
+            details: error.message || 'Unknown error',
+            ticker: ticker
+        });
     }
 });
 
