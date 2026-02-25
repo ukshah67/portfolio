@@ -84,6 +84,10 @@ app.get('/api/quote/:ticker', async (req, res) => {
     try {
         const { ticker } = req.params;
         const quote = await yahooFinance.quote(ticker);
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Surrogate-Control', 'no-store');
         res.json(quote);
     } catch (error) {
         console.error(error);

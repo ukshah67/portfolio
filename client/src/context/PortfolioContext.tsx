@@ -29,7 +29,14 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
 
     const fetchQuote = async (ticker: string) => {
         try {
-            const response = await fetch(`${API_URL}/api/quote/${ticker}`);
+            const timestamp = new Date().getTime();
+            const response = await fetch(`${API_URL}/api/quote/${ticker}?t=${timestamp}`, {
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            });
             if (!response.ok) throw new Error('Failed to fetch quote');
             const data = await response.json();
             // validate data
@@ -47,7 +54,14 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
     const fetchHoldings = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`${API_URL}/api/holdings`);
+            const timestamp = new Date().getTime();
+            const response = await fetch(`${API_URL}/api/holdings?t=${timestamp}`, {
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            });
             if (response.ok) {
                 const data = await response.json();
                 const mapped: Holding[] = data.map((h: any) => ({
