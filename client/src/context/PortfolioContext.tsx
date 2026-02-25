@@ -31,11 +31,7 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
         try {
             const timestamp = new Date().getTime();
             const response = await fetch(`${API_URL}/api/quote/${ticker}?t=${timestamp}`, {
-                cache: 'no-store',
-                headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
-                }
+                cache: 'no-store'
             });
             if (!response.ok) throw new Error('Failed to fetch quote');
             const data = await response.json();
@@ -56,11 +52,7 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
         try {
             const timestamp = new Date().getTime();
             const response = await fetch(`${API_URL}/api/holdings?t=${timestamp}`, {
-                cache: 'no-store',
-                headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
-                }
+                cache: 'no-store'
             });
             if (response.ok) {
                 const data = await response.json();
