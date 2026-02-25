@@ -7,7 +7,9 @@ import Holding from './models/Holding';
 
 const app = express();
 const port = process.env.PORT || 3002;
-const yahooFinance = new YahooFinance();
+const yahooFinance = new YahooFinance({
+    suppressNotices: ['ripHistorical', 'yahooSurvey']
+});
 
 app.use(cors());
 app.use(express.json());
@@ -86,22 +88,50 @@ app.get('/api/quote/:ticker', async (req, res) => {
         let quote;
 
         try {
-            // Primary method: quote()
+            // Method 1: quote()
             quote = await yahooFinance.quote(ticker);
         } catch (quoteError) {
-            console.warn(`Primary quote fetch failed for ${ticker}, trying fallback:`, quoteError);
+            console.warn(`Primary quote() failed for ${ticker}, trying quoteSummary():`, (quoteError as any).message);
 
-            // Fallback method: quoteSummary() which often works when quote() is blocked
-            const summary = await yahooFinance.quoteSummary(ticker, { modules: ['price'] });
-            if (summary && summary.price) {
-                quote = {
-                    regularMarketPrice: summary.price.regularMarketPrice,
-                    regularMarketPreviousClose: summary.price.regularMarketPreviousClose,
-                    longName: summary.price.longName || summary.price.shortName || ticker,
-                    symbol: ticker
-                };
-            } else {
-                throw quoteError; // Rethrow original error if fallback also fails
+            try {
+                // Method 2: quoteSummary() (requires crumbs too, might fail)
+                const summary = await yahooFinance.quoteSummary(ticker, { modules: ['price'] });
+                if (summary && summary.price) {
+                    quote = {
+                        regularMarketPrice: summary.price.regularMarketPrice,
+                        regularMarketPreviousClose: summary.price.regularMarketPreviousClose,
+                        longName: summary.price.longName || summary.price.shortName || ticker,
+                        symbol: ticker
+                    };
+                } else {
+                    throw new Error('No price in quoteSummary');
+                }
+            } catch (summaryError) {
+                console.warn(`Secondary quoteSummary() failed for ${ticker}, trying chart() fallback:`, (summaryError as any).message);
+
+                // Method 3: chart() - The most resilient as it usually doesn't need crumbs for metadata
+                const today = new Date();
+                const past = new Date();
+                past.setDate(today.getDate() - 7); // Get last 7 days to cover weekends
+
+                const chartResult = await yahooFinance.chart(ticker, {
+                    period1: past,
+                    period2: today,
+                    interval: '1d'
+                });
+
+                if (chartResult && chartResult.quotes && chartResult.quotes.length > 0) {
+                    const latest = chartResult.quotes[chartResult.quotes.length - 1];
+                    const meta = chartResult.meta;
+                    quote = {
+                        regularMarketPrice: latest.close || latest.adjclose,
+                        regularMarketPreviousClose: meta.previousClose || latest.open,
+                        longName: meta.longName || meta.shortName || ticker,
+                        symbol: ticker
+                    };
+                } else {
+                    throw summaryError; // Throw the previous error if even chart() fails
+                }
             }
         }
 
