@@ -16,8 +16,21 @@ interface PortfolioProviderProps {
 }
 
 export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }) => {
-    const [holdings, setHoldings] = useState<Holding[]>([]);
+    const [holdings, setHoldings] = useState<Holding[]>(() => {
+        const cached = localStorage.getItem('portfolioCache');
+        if (cached) {
+            try { return JSON.parse(cached).holdings || []; } catch (e) { }
+        }
+        return [];
+    });
     const [loading, setLoading] = useState<boolean>(false);
+    const [lastUpdated, setLastUpdated] = useState<string | null>(() => {
+        const cached = localStorage.getItem('portfolioCache');
+        if (cached) {
+            try { return JSON.parse(cached).timestamp || null; } catch (e) { }
+        }
+        return null;
+    });
     const [selectedOwner, setSelectedOwner] = useState<string>('All');
     const [owners, setOwners] = useState<string[]>([]);
 
@@ -25,6 +38,14 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
 
     useEffect(() => {
         fetchHoldings();
+
+        // Auto-refresh every 10 minutes (600,000 ms)
+        const interval = setInterval(() => {
+            console.log("Auto-refreshing latest prices...");
+            fetchHoldings();
+        }, 10 * 60 * 1000);
+
+        return () => clearInterval(interval);
     }, []);
 
     const fetchQuote = async (ticker: string) => {
@@ -83,6 +104,10 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
                     };
                 }));
                 setHoldings(holdingsWithQuotes);
+
+                const timestamp = new Date().toISOString();
+                setLastUpdated(timestamp);
+                localStorage.setItem('portfolioCache', JSON.stringify({ timestamp, holdings: holdingsWithQuotes }));
             }
         } catch (error) {
             console.error('Failed to fetch holdings:', error);
@@ -186,6 +211,11 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
             };
         }));
         setHoldings(updatedHoldings);
+
+        const timestamp = new Date().toISOString();
+        setLastUpdated(timestamp);
+        localStorage.setItem('portfolioCache', JSON.stringify({ timestamp, holdings: updatedHoldings }));
+
         setLoading(false);
     };
 
@@ -216,7 +246,8 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
             todaysPL,
             selectedOwner,
             setSelectedOwner,
-            owners
+            owners,
+            lastUpdated
         }}>
             {children}
         </PortfolioContext.Provider>

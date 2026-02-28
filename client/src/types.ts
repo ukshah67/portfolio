@@ -25,4 +25,5 @@ export interface PortfolioContextType {
     selectedOwner: string;
     setSelectedOwner: (owner: string) => void;
     owners: string[];
+    lastUpdated: string | null;
 }
