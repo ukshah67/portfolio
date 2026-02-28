@@ -4,6 +4,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 interface ChartDataPoint {
     date: string;
+    displayDate?: string;
     totalValue: number;
     [key: string]: any; // Allow dynamic ticker keys
 }
@@ -61,15 +62,17 @@ const DailyPLChart: React.FC = () => {
                     if (stockData.data && Array.isArray(stockData.data)) {
                         stockData.data.forEach((day: any) => {
                             if (!day.date || !day.close) return;
-                            const dateStr = new Date(day.date).toLocaleDateString();
+                            const dateObj = new Date(day.date);
+                            const dateKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+                            const displayDate = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
                             const dayValue = day.close * totalQty;
 
-                            if (!dateMap.has(dateStr)) {
-                                dateMap.set(dateStr, { date: dateStr, totalValue: 0 });
+                            if (!dateMap.has(dateKey)) {
+                                dateMap.set(dateKey, { date: dateKey, displayDate, totalValue: 0 });
                             }
 
-                            const existing = dateMap.get(dateStr)!;
+                            const existing = dateMap.get(dateKey)!;
                             existing.totalValue += dayValue;
                             existing[ticker] = dayValue; // Save individual stock value
                         });
@@ -78,7 +81,7 @@ const DailyPLChart: React.FC = () => {
 
                 // Convert map to sorted array
                 const finalData: ChartDataPoint[] = Array.from(dateMap.values())
-                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                    .sort((a, b) => a.date.localeCompare(b.date));
 
                 setChartData(finalData);
 
@@ -153,7 +156,7 @@ const DailyPLChart: React.FC = () => {
                         <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                             <XAxis
-                                dataKey="date"
+                                dataKey="displayDate"
                                 axisLine={false}
                                 tickLine={false}
                                 tick={{ fill: '#64748B', fontSize: 12 }}

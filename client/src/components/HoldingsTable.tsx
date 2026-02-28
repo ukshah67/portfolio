@@ -105,7 +105,7 @@ const HoldingsTable: React.FC = () => {
                                         <td className="px-6 py-4 text-slate-600 text-sm whitespace-nowrap">
                                             {isEditing ? (
                                                 <input type="date" value={editForm.purchaseDate} onChange={e => setEditForm({ ...editForm, purchaseDate: e.target.value })} className="w-full px-2 py-1 border rounded text-sm" />
-                                            ) : holding.purchaseDate ? new Date(holding.purchaseDate).toLocaleDateString() : '-'}
+                                            ) : holding.purchaseDate ? new Date(holding.purchaseDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-'}
                                         </td>
                                         <td className="px-6 py-4 font-medium text-slate-700">
                                             {isEditing ? (
