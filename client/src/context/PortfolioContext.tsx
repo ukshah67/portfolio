@@ -84,16 +84,20 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
                     avgCost: h.avgCost,
                     purchaseDate: h.purchaseDate,
                     owner: h.owner || 'Default User',
-                    currentPrice: 0,
-                    previousClose: 0,
-                    name: h.ticker
+                    currentPrice: h.lastPrice || h.avgCost,
+                    previousClose: h.previousClose || h.avgCost,
+                    name: h.name || h.ticker
                 }));
+
+                // Immediately display the cached DB prices so the UI never shows 0 while loading!
+                // If localStorage already loaded a fresher cache, we only overwrite if mapped has valid data.
+                setHoldings(mapped);
 
                 // Extract unique owners
                 const uniqueOwners = Array.from(new Set(mapped.map(h => h.owner)));
                 setOwners(uniqueOwners);
 
-                // Fetch live prices
+                // Fetch live prices in the background
                 const holdingsWithQuotes = await Promise.all(mapped.map(async (h) => {
                     const quote = await fetchQuote(h.ticker);
                     return {
@@ -108,6 +112,13 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
                 const timestamp = new Date().toISOString();
                 setLastUpdated(timestamp);
                 localStorage.setItem('portfolioCache', JSON.stringify({ timestamp, holdings: holdingsWithQuotes }));
+
+                // Silently cache the freshly fetched prices to the MongoDB server for other devices!
+                fetch(`${API_URL}/api/holdings/cache-prices`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ updates: holdingsWithQuotes })
+                }).catch(err => console.error('Failed to update DB cache', err));
             }
         } catch (error) {
             console.error('Failed to fetch holdings:', error);

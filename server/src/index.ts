@@ -36,13 +36,16 @@ app.get('/api/holdings', async (req, res) => {
 // Add new holding
 app.post('/api/holdings', async (req, res) => {
     try {
-        const { ticker, qty, avgCost, purchaseDate, owner } = req.body;
+        const { ticker, qty, avgCost, purchaseDate, owner, lastPrice, previousClose, name } = req.body;
         const newHolding = new Holding({
             ticker: ticker.toUpperCase(),
             qty,
             avgCost,
             purchaseDate: purchaseDate || new Date(),
-            owner: owner || 'Default User'
+            owner: owner || 'Default User',
+            lastPrice,
+            previousClose,
+            name
         });
         const savedHolding = await newHolding.save();
         res.status(201).json(savedHolding);
@@ -55,10 +58,10 @@ app.post('/api/holdings', async (req, res) => {
 // Edit holding
 app.put('/api/holdings/:id', async (req, res) => {
     try {
-        const { qty, avgCost, purchaseDate, owner } = req.body;
+        const { qty, avgCost, purchaseDate, owner, lastPrice, previousClose, name } = req.body;
         const updatedHolding = await Holding.findByIdAndUpdate(
             req.params.id,
-            { qty, avgCost, purchaseDate, owner },
+            { qty, avgCost, purchaseDate, owner, lastPrice, previousClose, name },
             { new: true } // Returns the modified document rather than the original
         );
 
@@ -79,6 +82,28 @@ app.delete('/api/holdings/:id', async (req, res) => {
         res.json({ message: 'Holding deleted' });
     } catch (error) {
         res.status(500).json({ error: 'Failed to delete holding' });
+    }
+});
+
+// Cache prices from frontend
+app.put('/api/holdings/cache-prices', async (req, res) => {
+    try {
+        const { updates } = req.body;
+        if (updates && Array.isArray(updates)) {
+            for (const update of updates) {
+                if (update._id) {
+                    await Holding.findByIdAndUpdate(update._id, {
+                        lastPrice: update.currentPrice,
+                        previousClose: update.previousClose,
+                        name: update.name
+                    });
+                }
+            }
+        }
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Failed to cache prices in DB:', error);
+        res.status(500).json({ error: 'Failed to cache prices' });
     }
 });
 

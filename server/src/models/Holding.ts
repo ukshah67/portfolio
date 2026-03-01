@@ -6,8 +6,9 @@ export interface IHolding extends Document {
     avgCost: number;
     purchaseDate: Date;
     owner: string;
-    // We don't store currentPrice or name in DB as they are fetched live, 
-    // but maybe name is good to cache? Let's just store core data.
+    lastPrice?: number;
+    previousClose?: number;
+    name?: string;
 }
 
 const HoldingSchema: Schema = new Schema({
@@ -15,7 +16,10 @@ const HoldingSchema: Schema = new Schema({
     qty: { type: Number, required: true, min: 1 },
     avgCost: { type: Number, required: true, min: 0 },
     purchaseDate: { type: Date, required: true, default: Date.now },
-    owner: { type: String, required: true, default: 'Default User' }
+    owner: { type: String, required: true, default: 'Default User' },
+    lastPrice: { type: Number },
+    previousClose: { type: Number },
+    name: { type: String }
 }, {
     timestamps: true
 });
