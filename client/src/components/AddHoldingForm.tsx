@@ -183,6 +183,41 @@ const AddHoldingForm: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
+                        <label className="block text-base font-semibold text-slate-700 mb-2">Quantity</label>
+                        <input
+                            type="number"
+                            value={qty}
+                            onChange={(e) => setQty(e.target.value)}
+                            placeholder="0"
+                            min="1"
+                            className={`w-full px-4 py-4 text-xl border rounded-xl focus:outline-none focus:ring-4 transition-all font-medium shadow-sm ${transactionType === 'SELL' && ownedQty > 0 && Number(qty) > ownedQty
+                                    ? 'border-rose-300 focus:ring-rose-100 focus:border-rose-500'
+                                    : 'border-slate-300 focus:ring-blue-100 focus:border-blue-500'
+                                }`}
+                        />
+                        {transactionType === 'SELL' && ticker && owner && (
+                            <p className={`mt-2 text-sm font-medium ${ownedQty > 0 ? 'text-slate-500' : 'text-rose-500'}`}>
+                                Shares owned: {ownedQty}
+                            </p>
+                        )}
+                    </div>
+
+                    <div>
+                        <label className="block text-base font-semibold text-slate-700 mb-2">{transactionType === 'BUY' ? 'Buy Price (₹)' : 'Sell Price (₹)'}</label>
+                        <input
+                            type="number"
+                            value={price}
+                            onChange={(e) => setPrice(e.target.value)}
+                            placeholder="0.00"
+                            min="0"
+                            step="0.01"
+                            className="w-full px-4 py-4 text-xl border border-slate-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all font-medium shadow-sm"
+                        />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
                         <label className="block text-base font-semibold text-slate-700 mb-2">Date of {transactionType === 'BUY' ? 'Purchase' : 'Sale'}</label>
                         <input
                             type="date"
