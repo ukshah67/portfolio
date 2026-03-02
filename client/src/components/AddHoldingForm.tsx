@@ -7,7 +7,7 @@ const AddHoldingForm: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [suggestions, setSuggestions] = useState<any[]>([]);
     const [showDropdown, setShowDropdown] = useState(false);
-    const { addHolding, sellHolding, searchTicker, loading, holdings, selectedOwner } = usePortfolio();
+    const { addHolding, sellHolding, searchTicker, loading, holdings, selectedOwner, owners } = usePortfolio();
     const [ticker, setTicker] = useState('');
     const [qty, setQty] = useState('');
     const [price, setPrice] = useState('');
@@ -195,11 +195,18 @@ const AddHoldingForm: React.FC = () => {
                         <label className="block text-base font-semibold text-slate-700 mb-2">Portfolio Owner</label>
                         <input
                             type="text"
+                            list="owner-suggestions"
                             value={owner}
                             onChange={(e) => setOwner(e.target.value)}
                             placeholder="e.g. John Doe"
                             className="w-full px-4 py-4 text-xl border border-slate-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all font-medium shadow-sm"
+                            autoComplete="off"
                         />
+                        <datalist id="owner-suggestions">
+                            {owners.map(o => (
+                                <option key={o} value={o} />
+                            ))}
+                        </datalist>
                     </div>
                 </div>
 
