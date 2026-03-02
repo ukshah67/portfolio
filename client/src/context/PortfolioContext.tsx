@@ -180,6 +180,30 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
         return false;
     };
 
+    const sellHolding = async (ticker: string, qty: number, price: number, date: string, owner: string): Promise<boolean> => {
+        setLoading(true);
+        try {
+            const response = await fetch(`${API_URL}/api/holdings/sell`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ticker, qty, rate: price, date, owner })
+            });
+
+            if (response.ok) {
+                await fetchHoldings();
+                setLoading(false);
+                return true;
+            } else {
+                const data = await response.json();
+                console.error('Sell failed:', data.error);
+            }
+        } catch (error) {
+            console.error('Error selling holding:', error);
+        }
+        setLoading(false);
+        return false;
+    };
+
     const editHolding = async (id: string, qty: number, price: number, date: string, owner: string): Promise<boolean> => {
         setLoading(true);
         try {
@@ -246,6 +270,7 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
         <PortfolioContext.Provider value={{
             holdings: filteredHoldings,
             addHolding,
+            sellHolding,
             editHolding,
             searchTicker,
             removeHolding,

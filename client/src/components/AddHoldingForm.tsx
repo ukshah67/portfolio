@@ -1,17 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { usePortfolio } from '../context/PortfolioContext';
-import { PlusCircle, Search } from 'lucide-react';
+import { Search, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
 
 const AddHoldingForm: React.FC = () => {
+    const [transactionType, setTransactionType] = useState<'BUY' | 'SELL'>('BUY');
     const [error, setError] = useState<string | null>(null);
     const [suggestions, setSuggestions] = useState<any[]>([]);
     const [showDropdown, setShowDropdown] = useState(false);
-    const { addHolding, searchTicker, loading } = usePortfolio();
+    const { addHolding, sellHolding, searchTicker, loading, holdings, selectedOwner } = usePortfolio();
     const [ticker, setTicker] = useState('');
     const [qty, setQty] = useState('');
     const [price, setPrice] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [owner, setOwner] = useState('');
+
+    // Pre-fill owner based on global selected owner if not 'All'
+    useEffect(() => {
+        if (selectedOwner !== 'All' && !owner) {
+            setOwner(selectedOwner);
+        }
+    }, [selectedOwner]);
 
     // Debounce search
     useEffect(() => {
@@ -56,18 +64,39 @@ const AddHoldingForm: React.FC = () => {
         setError(null);
         setShowDropdown(false);
 
-        const success = await addHolding(ticker.toUpperCase(), Number(qty), Number(price), date, owner);
+        const currentQty = Number(qty);
 
-        if (success) {
-            setTicker('');
-            setQty('');
-            setPrice('');
-            setDate(new Date().toISOString().split('T')[0]);
-            setOwner('');
-            setSuggestions([]);
-            setSuggestions([]);
+        if (transactionType === 'SELL') {
+            const ownedQty = holdings
+                .filter(h => h.ticker === ticker.toUpperCase() && h.owner === owner)
+                .reduce((sum, h) => sum + h.qty, 0);
+
+            if (currentQty > ownedQty) {
+                setError(`You only own ${ownedQty} shares of ${ticker.toUpperCase()} in ${owner}'s portfolio. You cannot sell ${currentQty}.`);
+                return;
+            }
+
+            const success = await sellHolding(ticker.toUpperCase(), currentQty, Number(price), date, owner);
+            if (success) {
+                setTicker('');
+                setQty('');
+                setPrice('');
+                setDate(new Date().toISOString().split('T')[0]);
+                setSuggestions([]);
+            } else {
+                setError('Failed to process sell transaction.');
+            }
         } else {
-            setError(`Invalid ticker "${ticker}". Please select a valid ticker from the suggestions.`);
+            const success = await addHolding(ticker.toUpperCase(), currentQty, Number(price), date, owner);
+            if (success) {
+                setTicker('');
+                setQty('');
+                setPrice('');
+                setDate(new Date().toISOString().split('T')[0]);
+                setSuggestions([]);
+            } else {
+                setError(`Failed to add holding. Ensure "${ticker}" is a valid NSE/BSE symbol.`);
+            }
         }
     };
 
@@ -78,27 +107,43 @@ const AddHoldingForm: React.FC = () => {
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
-        console.log('Key pressed:', e.key, 'Dropdown:', showDropdown, 'Suggestions:', suggestions.length);
         if (e.key === 'Tab' && showDropdown && suggestions.length > 0) {
-            // e.preventDefault(); // Optional: uncomment if we want to prevent focus shift
             const firstSuggestion = suggestions[0];
-            console.log('Auto-selecting:', firstSuggestion.symbol);
             setTicker(firstSuggestion.symbol);
             setError(null);
             setShowDropdown(false);
-            // Default tab behavior will move focus to next input
         }
     };
 
+    // Calculate currently owned qty for the form
+    const ownedQty = React.useMemo(() => {
+        return holdings
+            .filter(h => h.ticker === ticker.toUpperCase() && h.owner === owner)
+            .reduce((sum, h) => sum + h.qty, 0);
+    }, [holdings, ticker, owner]);
+
     return (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 mb-8">
-            <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center">
-                <PlusCircle className="mr-2" size={20} />
-                Add New Holding
-            </h2>
+            <div className="flex bg-slate-100 p-1 rounded-xl mb-6">
+                <button
+                    onClick={() => setTransactionType('BUY')}
+                    className={`flex-1 flex justify-center items-center py-2.5 rounded-lg text-sm font-semibold transition-all ${transactionType === 'BUY' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                    <ArrowDownCircle className="mr-2" size={18} />
+                    Buy Stocks
+                </button>
+                <button
+                    onClick={() => setTransactionType('SELL')}
+                    className={`flex-1 flex justify-center items-center py-2.5 rounded-lg text-sm font-semibold transition-all ${transactionType === 'SELL' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                    <ArrowUpCircle className="mr-2" size={18} />
+                    Sell Stocks
+                </button>
+            </div>
+
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                 <div>
-                    <label className="block text-base font-semibold text-slate-700 mb-2">Ticker Symbol (NSE)</label>
+                    <label className="block text-base font-semibold text-slate-700 mb-2">Ticker Symbol</label>
                     <div className="relative search-container">
                         <input
                             type="text"
@@ -138,34 +183,7 @@ const AddHoldingForm: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label className="block text-base font-semibold text-slate-700 mb-2">Quantity</label>
-                        <input
-                            type="number"
-                            value={qty}
-                            onChange={(e) => setQty(e.target.value)}
-                            placeholder="0"
-                            min="1"
-                            className="w-full px-4 py-4 text-xl border border-slate-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all font-medium shadow-sm"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-base font-semibold text-slate-700 mb-2">Buy Price (₹)</label>
-                        <input
-                            type="number"
-                            value={price}
-                            onChange={(e) => setPrice(e.target.value)}
-                            placeholder="0.00"
-                            min="0"
-                            step="0.01"
-                            className="w-full px-4 py-4 text-xl border border-slate-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all font-medium shadow-sm"
-                        />
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label className="block text-base font-semibold text-slate-700 mb-2">Date of Purchase</label>
+                        <label className="block text-base font-semibold text-slate-700 mb-2">Date of {transactionType === 'BUY' ? 'Purchase' : 'Sale'}</label>
                         <input
                             type="date"
                             value={date}
@@ -187,10 +205,11 @@ const AddHoldingForm: React.FC = () => {
 
                 <button
                     type="submit"
-                    disabled={loading || !ticker || !qty || !price}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xl font-bold py-4 rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none mt-2"
+                    disabled={loading || !ticker || !qty || !price || (transactionType === 'SELL' && Number(qty) > ownedQty)}
+                    className={`w-full text-white text-xl font-bold py-4 rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none mt-2 ${transactionType === 'BUY' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-rose-600 hover:bg-rose-700'
+                        }`}
                 >
-                    {loading ? 'Adding to Portfolio...' : 'Add Holding'}
+                    {loading ? 'Processing...' : (transactionType === 'BUY' ? 'Add Holding' : 'Sell Shares')}
                 </button>
             </form>
         </div>

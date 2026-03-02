@@ -55,6 +55,47 @@ app.post('/api/holdings', async (req, res) => {
     }
 });
 
+// Sell holding (FIFO deduction)
+app.post('/api/holdings/sell', async (req, res) => {
+    try {
+        const { ticker, qty, rate, date, owner } = req.body;
+
+        if (!ticker || !qty || qty <= 0 || !owner) {
+            return res.status(400).json({ error: 'Invalid sell parameters' });
+        }
+
+        // Find all holdings for this ticker and owner, sorted by purchaseDate (FIFO)
+        const holdings = await Holding.find({ ticker: ticker.toUpperCase(), owner }).sort({ purchaseDate: 1 });
+
+        const totalOwned = holdings.reduce((sum, h) => sum + h.qty, 0);
+        if (qty > totalOwned) {
+            return res.status(400).json({ error: `Cannot sell ${qty} shares. Only ${totalOwned} shares owned.` });
+        }
+
+        let remainingToSell = qty;
+
+        for (const holding of holdings) {
+            if (remainingToSell <= 0) break;
+
+            if (holding.qty <= remainingToSell) {
+                // Sell the entire lot
+                remainingToSell -= holding.qty;
+                await Holding.findByIdAndDelete(holding._id);
+            } else {
+                // Sell partial lot
+                holding.qty -= remainingToSell;
+                await holding.save();
+                remainingToSell = 0;
+            }
+        }
+
+        res.status(200).json({ message: 'Sell transaction successful' });
+    } catch (error) {
+        console.error('Error selling holdings:', error);
+        res.status(500).json({ error: 'Failed to process sell transaction' });
+    }
+});
+
 // Edit holding
 app.put('/api/holdings/:id', async (req, res) => {
     try {
