@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { usePortfolio } from '../context/PortfolioContext';
+import { Holding } from '../types';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 interface ChartDataPoint {
@@ -11,6 +12,15 @@ interface ChartDataPoint {
 
 const DailyPLChart: React.FC = () => {
     const { holdings, loading: contextLoading } = usePortfolio();
+
+    // Create a map of purchase events by date string (YYYY-MM-DD)
+    const purchaseEvents = holdings.reduce((acc, holding) => {
+        if (!holding.purchaseDate) return acc;
+        const dateStr = new Date(holding.purchaseDate).toISOString().split('T')[0];
+        if (!acc[dateStr]) acc[dateStr] = [];
+        acc[dateStr].push(holding);
+        return acc;
+    }, {} as Record<string, Holding[]>);
     const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
     const [loading, setLoading] = useState(false);
     const [range, setRange] = useState<'7d' | '30d' | '120d' | '180d'>('30d');
@@ -170,11 +180,42 @@ const DailyPLChart: React.FC = () => {
                                 tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
                             />
                             <Tooltip
-                                formatter={(value: any, name: any) => {
-                                    if (name === 'totalValue') return [`₹${Number(value).toFixed(2)}`, 'Total Portfolio'];
-                                    return [`₹${Number(value).toFixed(2)}`, name];
+                                content={({ active, payload, label }) => {
+                                    if (active && payload && payload.length) {
+                                        // Find original date key from payload
+                                        const dataPoint = payload[0].payload;
+                                        const rawDate = dataPoint.date; // YYYY-MM-DD
+                                        const events = purchaseEvents[rawDate];
+
+                                        return (
+                                            <div className="bg-white p-3 border border-slate-200 shadow-md rounded-lg">
+                                                <p className="font-semibold text-slate-800 mb-2">{label}</p>
+                                                {payload.map((entry: any, index: number) => {
+                                                    const name = entry.name === 'totalValue' ? 'Total Portfolio' : entry.name;
+                                                    const color = entry.color;
+                                                    return (
+                                                        <div key={`item-${index}`} className="flex items-center space-x-2 text-sm text-slate-600 mb-1">
+                                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }}></div>
+                                                            <span className="font-medium">{name}:</span>
+                                                            <span>₹{Number(entry.value).toFixed(2)}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                                {events && events.length > 0 && (
+                                                    <div className="mt-3 pt-2 border-t border-slate-100">
+                                                        <p className="text-xs font-bold text-blue-600 mb-1">Purchase Events</p>
+                                                        {events.map((ev, i) => (
+                                                            <div key={i} className="text-xs text-slate-700 bg-blue-50 p-1.5 rounded mb-1">
+                                                                <span className="font-semibold">{ev.ticker}</span> - Bought {ev.qty} @ ₹{ev.avgCost.toFixed(2)}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    }
+                                    return null;
                                 }}
-                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                             />
                             <Legend
                                 content={renderInteractiveLegend}
@@ -185,7 +226,16 @@ const DailyPLChart: React.FC = () => {
                                 name="Total Portfolio"
                                 stroke="#2563EB"
                                 strokeWidth={3}
-                                dot={false}
+                                dot={(props: any) => {
+                                    const { cx, cy, payload } = props;
+                                    const events = purchaseEvents[payload.date];
+                                    if (events && events.length > 0) {
+                                        return (
+                                            <circle cx={cx} cy={cy} r={5} stroke="#fff" strokeWidth={2} fill="#2563EB" key={`dot-${payload.date}`} />
+                                        );
+                                    }
+                                    return <svg key={`blank-${payload.date}`}></svg>;
+                                }}
                                 activeDot={{ r: 6, fill: '#2563EB', stroke: '#fff', strokeWidth: 2 }}
                                 hide={hiddenLines['totalValue'] === true}
                             />
@@ -203,7 +253,16 @@ const DailyPLChart: React.FC = () => {
                                         name={ticker}
                                         stroke={color}
                                         strokeWidth={1.5}
-                                        dot={false}
+                                        dot={(props: any) => {
+                                            const { cx, cy, payload } = props;
+                                            const events = purchaseEvents[payload.date]?.filter(e => e.ticker === ticker);
+                                            if (events && events.length > 0) {
+                                                return (
+                                                    <circle cx={cx} cy={cy} r={4} stroke="#fff" strokeWidth={1.5} fill={color} key={`dot-${ticker}-${payload.date}`} />
+                                                );
+                                            }
+                                            return <svg key={`blank-${ticker}-${payload.date}`}></svg>;
+                                        }}
                                         activeDot={{ r: 4, fill: color, stroke: '#fff', strokeWidth: 2 }}
                                         hide={hiddenLines[ticker] ?? true} // Default hide, check state
                                     />
