@@ -137,11 +137,20 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
                 const hasSymbol = q && typeof q.symbol === 'string';
                 if (!hasSymbol) return false;
 
-                // Prioritize Indian stocks
-                const isNSE = q.exchange === 'NSI' || q.symbol.endsWith('.NS');
-                const isBSE = q.exchange === 'BOM' || q.symbol.endsWith('.BO');
+                // The backend already appends 'NSE'/'BSE' to non-suffixed queries to force Indian results.
+                // We just need to make sure we don't accidentally show obvious international exchanges
+                // like NYQ or NMS if Yahoo returned them as secondary results.
+                const validExchanges = ['NSI', 'BOM', 'NSE', 'BSE'];
+                const exchange = q.exchange ? q.exchange.toUpperCase() : '';
 
-                return isNSE || isBSE;
+                const isNSE = validExchanges.includes(exchange) || q.symbol.endsWith('.NS');
+                const isBSE = validExchanges.includes(exchange) || q.symbol.endsWith('.BO');
+
+                // If it ends in .NS or .BO, it's definitely Indian.
+                // Otherwise, verify the exchange is one of our valid ones or doesn't explicitly look American.
+                const isLikelyIndian = isNSE || isBSE || (q.quoteType === 'EQUITY' && !['NYQ', 'NMS', 'PNK'].includes(exchange));
+
+                return isLikelyIndian;
             });
             console.log('Filtered Results:', filtered);
             return filtered;
