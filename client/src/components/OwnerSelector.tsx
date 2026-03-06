@@ -5,7 +5,8 @@ import { Users } from 'lucide-react';
 const OwnerSelector: React.FC = () => {
     const { owners, selectedOwner, setSelectedOwner } = usePortfolio();
 
-    if (owners.length <= 1) return null; // Only show if more than 1 owner exists
+    // Show even if only 1 owner exists so user knows it's there
+    // if (owners.length <= 1) return null; 
 
     return (
         <div className="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm ml-auto">

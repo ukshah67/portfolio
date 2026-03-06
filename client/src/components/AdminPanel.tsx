@@ -27,7 +27,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
     const [creating, setCreating] = useState(false);
     const [successMsg, setSuccessMsg] = useState('');
 
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
+    const API_URL = import.meta.env.VITE_API_URL || 'https://portfolio-backend-6tqz.onrender.com';
 
     const fetchUsers = async () => {
         try {
