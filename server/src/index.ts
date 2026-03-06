@@ -16,7 +16,7 @@ const yahooFinance = new YahooFinance({
 app.use(cors());
 app.use(express.json());
 
-// Main Auth Endpoints
+// Main Auth Endpoints - Public login, protected register/users (Fix applied Mar 6)
 app.use('/api/auth', authRouter);
 
 // MongoDB Connection
