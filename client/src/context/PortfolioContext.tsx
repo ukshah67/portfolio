@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Holding, PortfolioContextType } from '../types';
+import { useAuth } from './AuthContext';
 
 const PortfolioContext = createContext<PortfolioContextType | undefined>(undefined);
 
@@ -33,8 +34,16 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
     });
     const [selectedOwner, setSelectedOwner] = useState<string>('All');
     const [owners, setOwners] = useState<string[]>([]);
+    const { token, logout } = useAuth();
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
+
+    const getHeaders = (includesJson = false) => {
+        const headers: any = {};
+        if (includesJson) headers['Content-Type'] = 'application/json';
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        return headers;
+    };
 
     useEffect(() => {
         fetchHoldings();
@@ -52,8 +61,10 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
         try {
             const timestamp = new Date().getTime();
             const response = await fetch(`${API_URL}/api/quote/${ticker}?t=${timestamp}`, {
-                cache: 'no-store'
+                cache: 'no-store',
+                headers: getHeaders()
             });
+            if (response.status === 401 || response.status === 403) logout();
             if (!response.ok) throw new Error('Failed to fetch quote');
             const data = await response.json();
             // validate data
@@ -73,8 +84,10 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
         try {
             const timestamp = new Date().getTime();
             const response = await fetch(`${API_URL}/api/holdings?t=${timestamp}`, {
-                cache: 'no-store'
+                cache: 'no-store',
+                headers: getHeaders()
             });
+            if (response.status === 401 || response.status === 403) logout();
             if (response.ok) {
                 const data = await response.json();
                 const mapped: Holding[] = data.map((h: any) => ({
@@ -116,7 +129,7 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
                 // Silently cache the freshly fetched prices to the MongoDB server for other devices!
                 fetch(`${API_URL}/api/holdings/cache-prices`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getHeaders(true),
                     body: JSON.stringify({ updates: holdingsWithQuotes })
                 }).catch(err => console.error('Failed to update DB cache', err));
             }
@@ -128,7 +141,8 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
 
     const searchTicker = async (query: string) => {
         try {
-            const response = await fetch(`${API_URL}/api/search?q=${query}`);
+            const response = await fetch(`${API_URL}/api/search?q=${query}`, { headers: getHeaders() });
+            if (response.status === 401 || response.status === 403) logout();
             if (!response.ok) throw new Error('Failed to search ticker');
             const data = await response.json();
             console.log('Search Raw Data:', data);
@@ -170,9 +184,10 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
         try {
             const response = await fetch(`${API_URL}/api/holdings`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getHeaders(true),
                 body: JSON.stringify({ ticker, qty, avgCost: price, purchaseDate: date, owner })
             });
+            if (response.status === 401 || response.status === 403) logout();
 
             if (response.ok) {
                 await fetchHoldings();
@@ -191,9 +206,10 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
         try {
             const response = await fetch(`${API_URL}/api/holdings/sell`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getHeaders(true),
                 body: JSON.stringify({ ticker, qty, rate: price, date, owner })
             });
+            if (response.status === 401 || response.status === 403) logout();
 
             if (response.ok) {
                 await fetchHoldings();
@@ -215,9 +231,10 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
         try {
             const response = await fetch(`${API_URL}/api/holdings/${id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getHeaders(true),
                 body: JSON.stringify({ qty, avgCost: price, purchaseDate: date, owner })
             });
+            if (response.status === 401 || response.status === 403) logout();
 
             if (response.ok) {
                 await fetchHoldings();
@@ -233,7 +250,8 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
 
     const removeHolding = async (id: string) => {
         try {
-            await fetch(`${API_URL}/api/holdings/${id}`, { method: 'DELETE' });
+            const response = await fetch(`${API_URL}/api/holdings/${id}`, { method: 'DELETE', headers: getHeaders() });
+            if (response.status === 401 || response.status === 403) logout();
             setHoldings(prev => prev.filter(h => h._id !== id));
         } catch (error) {
             console.error('Error deleting holding:', error);

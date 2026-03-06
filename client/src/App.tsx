@@ -1,13 +1,21 @@
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { PortfolioProvider } from './context/PortfolioContext';
+import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import AddHoldingForm from './components/AddHoldingForm';
 import HoldingsTable from './components/HoldingsTable';
 import PortfolioChart from './components/PortfolioChart';
 import DailyPLChart from './components/DailyPLChart';
 import OwnerSelector from './components/OwnerSelector';
-import { LineChart } from 'lucide-react';
+import { LineChart, LogOut } from 'lucide-react';
 
-function App() {
+const AuthenticatedApp = () => {
+  const { token, user, logout } = useAuth();
+
+  if (!token) {
+    return <Login />;
+  }
+
   return (
     <PortfolioProvider>
       <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
@@ -19,10 +27,20 @@ function App() {
               </div>
               <h1 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-blue-500 bg-clip-text text-transparent flex items-baseline">
                 Portfolio Manager
-                <span className="text-xs text-slate-400 font-normal ml-3 tracking-normal hidden sm:inline-block">v1.3 (Mar 6 Update)</span>
+                <span className="text-xs text-slate-400 font-normal ml-3 tracking-normal hidden sm:inline-block">v1.4 (Mar 6 Update)</span>
               </h1>
             </div>
-            {/* The new owner selector that uses Context (must be inside Provider ideally, so moved down) */}
+
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-slate-500 hidden sm:inline-block">Logged in as <span className="font-semibold text-slate-700">{user?.username}</span></span>
+              <button
+                onClick={logout}
+                className="text-slate-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50"
+                title="Log out"
+              >
+                <LogOut size={20} />
+              </button>
+            </div>
           </div>
         </header>
 
@@ -50,6 +68,14 @@ function App() {
         </main>
       </div>
     </PortfolioProvider>
+  );
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <AuthenticatedApp />
+    </AuthProvider>
   );
 }
 

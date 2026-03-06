@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { usePortfolio } from '../context/PortfolioContext';
 import { Holding } from '../types';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -12,6 +13,7 @@ interface ChartDataPoint {
 
 const DailyPLChart: React.FC = () => {
     const { holdings, loading: contextLoading } = usePortfolio();
+    const { token, logout } = useAuth();
 
     // Create a map of purchase events by date string (YYYY-MM-DD)
     const purchaseEvents = holdings.reduce((acc, holding) => {
@@ -52,10 +54,14 @@ const DailyPLChart: React.FC = () => {
 
                 const response = await fetch(`${API_URL}/api/history`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                    },
                     body: JSON.stringify({ tickers, range })
                 });
 
+                if (response.status === 401 || response.status === 403) logout();
                 if (!response.ok) throw new Error('Failed to fetch history');
 
                 const data: any[] = await response.json();

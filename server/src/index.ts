@@ -5,6 +5,7 @@ import YahooFinance from 'yahoo-finance2';
 import mongoose from 'mongoose';
 import Holding from './models/Holding';
 import authRouter, { authenticateToken } from './auth';
+import { COMMON_STOCKS } from './commonStocks';
 
 const app = express();
 const port = process.env.PORT || 3002;
@@ -316,6 +317,16 @@ app.get('/api/search', authenticateToken, async (req: any, res: any) => {
         const resultsRaw = await yahooFinance.search(query, searchOptions);
         let combinedQuotes = (resultsRaw.quotes || []).filter((q: any) => q.quoteType === 'EQUITY' || q.quoteType === 'ETF');
 
+        // 1. Instantly inject highly popular local Indian stocks if they match the query loosely
+        const qUpper = query.toUpperCase();
+        const localMatches: any[] = COMMON_STOCKS.filter(s =>
+            s.symbol.toUpperCase().includes(qUpper) ||
+            s.shortname.toUpperCase().includes(qUpper)
+        );
+
+        // Add local matches first to guarantee they appear at the top
+        combinedQuotes = [...localMatches, ...combinedQuotes];
+
         // To prioritize Indian stocks, if the user hasn't specified an exchange suffix, search directly with exchange suffixes
         // This is much better for partial queries like "VOLTA" than "VOLTA NSE"
         if (!query.includes('.')) {
@@ -342,14 +353,19 @@ app.get('/api/search', authenticateToken, async (req: any, res: any) => {
             // Special fallback for Tata companies
             if (combinedQuotes.length === 0 && query.toUpperCase() === 'TATA') {
                 try {
-                    const resultsTata = await yahooFinance.search(`TATA MOTORS NSE`, searchOptions);
+                    const resultsTata = await yahooFinance.search(`TATAMOTORS.NS`, searchOptions);
                     combinedQuotes = [...combinedQuotes, ...(resultsTata.quotes || []).filter((q: any) => q.quoteType === 'EQUITY')];
                 } catch (e) { }
             }
         }
 
-        // Deduplicate results based on symbol
-        const uniqueQuotes = Array.from(new Map(combinedQuotes.map(q => [q.symbol, q])).values());
+        // Remove exact duplicates by symbol
+        const seenSymbols = new Set();
+        const uniqueQuotes = combinedQuotes.filter(q => {
+            if (seenSymbols.has(q.symbol)) return false;
+            seenSymbols.add(q.symbol);
+            return true;
+        });
 
         res.json({ quotes: uniqueQuotes });
     } catch (error) {

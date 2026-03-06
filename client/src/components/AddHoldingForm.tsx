@@ -166,11 +166,11 @@ const AddHoldingForm: React.FC = () => {
                                         onClick={() => handleSuggestionClick(s.symbol)}
                                         className="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 flex justify-between items-center group"
                                     >
-                                        <div>
-                                            <span className="font-bold text-slate-800">{s.symbol}</span>
-                                            <span className="ml-2 text-sm text-slate-500">{s.shortname || s.longname}</span>
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-slate-800 line-clamp-1">{s.shortname || s.longname || s.symbol}</span>
+                                            <span className="text-sm text-slate-500">{s.symbol}</span>
                                         </div>
-                                        <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded group-hover:bg-white">{s.exchange}</span>
+                                        <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded group-hover:bg-white flex-shrink-0 ml-2">{s.exchange}</span>
                                     </button>
                                 ))}
                             </div>
@@ -191,8 +191,8 @@ const AddHoldingForm: React.FC = () => {
                             placeholder="0"
                             min="1"
                             className={`w-full px-4 py-4 text-xl border rounded-xl focus:outline-none focus:ring-4 transition-all font-medium shadow-sm ${transactionType === 'SELL' && ownedQty > 0 && Number(qty) > ownedQty
-                                    ? 'border-rose-300 focus:ring-rose-100 focus:border-rose-500'
-                                    : 'border-slate-300 focus:ring-blue-100 focus:border-blue-500'
+                                ? 'border-rose-300 focus:ring-rose-100 focus:border-rose-500'
+                                : 'border-slate-300 focus:ring-blue-100 focus:border-blue-500'
                                 }`}
                         />
                         {transactionType === 'SELL' && ticker && owner && (
