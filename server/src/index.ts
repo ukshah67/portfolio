@@ -281,35 +281,32 @@ app.get('/api/search', async (req, res) => {
         const resultsRaw = await yahooFinance.search(query, searchOptions);
         let combinedQuotes = (resultsRaw.quotes || []).filter((q: any) => q.quoteType === 'EQUITY' || q.quoteType === 'ETF');
 
-        // To prioritize Indian stocks, if the user hasn't specified an exchange suffix, search for .NS automatically
+        // To prioritize Indian stocks, if the user hasn't specified an exchange suffix, search directly with exchange keywords
         if (!query.includes('.')) {
             try {
-                const resultsNS = await yahooFinance.search(`${query}.NS`, searchOptions);
-                if (resultsNS.quotes) {
-                    const validNSQuotes = resultsNS.quotes.filter((q: any) => q.quoteType === 'EQUITY' || q.quoteType === 'ETF');
-                    combinedQuotes = [...combinedQuotes, ...validNSQuotes];
+                const resultsNSE = await yahooFinance.search(`${query} NSE`, searchOptions);
+                if (resultsNSE.quotes) {
+                    const validNSEQuotes = resultsNSE.quotes.filter((q: any) => q.quoteType === 'EQUITY' || q.quoteType === 'ETF');
+                    combinedQuotes = [...combinedQuotes, ...validNSEQuotes];
                 }
             } catch (e) {
-                console.warn(`Failed .NS search for ${query}`);
+                console.warn(`Failed NSE keyword search for ${query}`);
             }
 
-            // Special fallback for Indian Banks (e.g. replacing 'KOTAK' with 'KOTAKBANK')
-            if (combinedQuotes.length === 0 && !query.toUpperCase().includes('BANK')) {
-                try {
-                    const resultsBankNS = await yahooFinance.search(`${query}BANK.NS`, searchOptions);
-                    if (resultsBankNS.quotes) {
-                        const validBankQuotes = resultsBankNS.quotes.filter((q: any) => q.quoteType === 'EQUITY' || q.quoteType === 'ETF');
-                        combinedQuotes = [...combinedQuotes, ...validBankQuotes];
-                    }
-                } catch (e) {
-                    // Ignore
+            try {
+                const resultsBSE = await yahooFinance.search(`${query} BSE`, searchOptions);
+                if (resultsBSE.quotes) {
+                    const validBSEQuotes = resultsBSE.quotes.filter((q: any) => q.quoteType === 'EQUITY' || q.quoteType === 'ETF');
+                    combinedQuotes = [...combinedQuotes, ...validBSEQuotes];
                 }
+            } catch (e) {
+                console.warn(`Failed BSE keyword search for ${query}`);
             }
 
             // Special fallback for Tata companies
             if (combinedQuotes.length === 0 && query.toUpperCase() === 'TATA') {
                 try {
-                    const resultsTata = await yahooFinance.search(`TATA MOTORS`, searchOptions);
+                    const resultsTata = await yahooFinance.search(`TATA MOTORS NSE`, searchOptions);
                     combinedQuotes = [...combinedQuotes, ...(resultsTata.quotes || []).filter((q: any) => q.quoteType === 'EQUITY')];
                 } catch (e) { }
             }
