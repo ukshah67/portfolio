@@ -143,4 +143,8 @@ export const authenticateToken = (req: any, res: any, next: any) => {
     });
 };
 
+router.get('/test-sync', (req, res) => {
+    res.json({ status: 'live', timestamp: 'Mar 6 19:43' });
+});
+
 export default router;
