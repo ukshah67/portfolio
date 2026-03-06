@@ -17,7 +17,7 @@ app.use(cors());
 app.use(express.json());
 
 // Main Auth Endpoints
-app.use('/api/auth', authenticateToken, authRouter);
+app.use('/api/auth', authRouter);
 
 // MongoDB Connection
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/portfolio-db';

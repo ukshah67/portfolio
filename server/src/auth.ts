@@ -77,7 +77,7 @@ router.post('/login', async (req, res) => {
 });
 
 // Create User Route (Admin Only)
-router.post('/register', async (req, res) => {
+router.post('/register', authenticateToken, async (req, res) => {
     try {
         // We will secure this with authenticateToken middleware on the main index.ts mounting point later
         // But for double safety, check the user object we inject into req
@@ -114,7 +114,7 @@ router.post('/register', async (req, res) => {
 });
 
 // Get All Users (Admin Only)
-router.get('/users', async (req, res) => {
+router.get('/users', authenticateToken, async (req, res) => {
     try {
         if (!(req as any).user || (req as any).user.role !== 'admin') {
             return res.status(403).json({ error: 'Admin privileges required' });
