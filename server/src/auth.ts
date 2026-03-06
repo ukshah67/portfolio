@@ -113,6 +113,22 @@ router.post('/register', async (req, res) => {
     }
 });
 
+// Get All Users (Admin Only)
+router.get('/users', async (req, res) => {
+    try {
+        if (!(req as any).user || (req as any).user.role !== 'admin') {
+            return res.status(403).json({ error: 'Admin privileges required' });
+        }
+
+        // Exclude the password hashes from the result!
+        const users = await User.find({}, '-password').sort({ createdAt: -1 });
+        res.json(users);
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        res.status(500).json({ error: 'Failed to fetch users' });
+    }
+});
+
 // Middleware for authentication
 export const authenticateToken = (req: any, res: any, next: any) => {
     const authHeader = req.headers['authorization'];

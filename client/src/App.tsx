@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PortfolioProvider } from './context/PortfolioContext';
 import Login from './components/Login';
@@ -7,10 +8,12 @@ import HoldingsTable from './components/HoldingsTable';
 import PortfolioChart from './components/PortfolioChart';
 import DailyPLChart from './components/DailyPLChart';
 import OwnerSelector from './components/OwnerSelector';
-import { LineChart, LogOut } from 'lucide-react';
+import AdminPanel from './components/AdminPanel';
+import { LineChart, LogOut, Shield } from 'lucide-react';
 
 const AuthenticatedApp = () => {
-  const { token, user, logout } = useAuth();
+  const { token, user, logout, isAdmin } = useAuth();
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
 
   if (!token) {
     return <Login />;
@@ -33,6 +36,15 @@ const AuthenticatedApp = () => {
 
             <div className="flex items-center space-x-4">
               <span className="text-sm text-slate-500 hidden sm:inline-block">Logged in as <span className="font-semibold text-slate-700">{user?.username}</span></span>
+              {isAdmin && (
+                <button
+                  onClick={() => setShowAdminPanel(true)}
+                  className="text-slate-400 hover:text-blue-600 transition-colors p-2 rounded-full hover:bg-blue-50"
+                  title="Admin Panel"
+                >
+                  <Shield size={20} />
+                </button>
+              )}
               <button
                 onClick={logout}
                 className="text-slate-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50"
@@ -65,6 +77,8 @@ const AuthenticatedApp = () => {
               <AddHoldingForm />
             </div>
           </div>
+
+          {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
         </main>
       </div>
     </PortfolioProvider>
