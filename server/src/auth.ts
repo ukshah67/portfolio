@@ -6,6 +6,20 @@ import { User } from './models/User';
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_change_in_production';
 
+// Middleware for authentication
+export const authenticateToken = (req: any, res: any, next: any) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+    if (!token) return res.status(401).json({ error: 'Access token required' }); // Removed [DEBUG-V1] for final fix
+
+    jsonwebtoken.verify(token, JWT_SECRET, (err: any, user: any) => {
+        if (err) return res.status(403).json({ error: 'Invalid or expired token' });
+        req.user = user;
+        next();
+    });
+};
+
 // Initial setup route to create the very first admin if none exists (safeguard)
 router.post('/setup-admin', async (req, res) => {
     try {
@@ -127,24 +141,6 @@ router.get('/users', authenticateToken, async (req, res) => {
         console.error('Error fetching users:', error);
         res.status(500).json({ error: 'Failed to fetch users' });
     }
-});
-
-// Middleware for authentication
-export const authenticateToken = (req: any, res: any, next: any) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-
-    if (!token) return res.status(401).json({ error: 'Access token required [DEBUG-V1]' });
-
-    jsonwebtoken.verify(token, JWT_SECRET, (err: any, user: any) => {
-        if (err) return res.status(403).json({ error: 'Invalid or expired token' });
-        req.user = user;
-        next();
-    });
-};
-
-router.get('/test-sync', (req, res) => {
-    res.json({ status: 'live', timestamp: 'Mar 6 19:43' });
 });
 
 export default router;
