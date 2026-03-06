@@ -146,11 +146,8 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
                 const isNSE = validExchanges.includes(exchange) || q.symbol.endsWith('.NS');
                 const isBSE = validExchanges.includes(exchange) || q.symbol.endsWith('.BO');
 
-                // If it ends in .NS or .BO, it's definitely Indian.
-                // Otherwise, verify the exchange is one of our valid ones or doesn't explicitly look American.
-                const isLikelyIndian = isNSE || isBSE || (q.quoteType === 'EQUITY' && !['NYQ', 'NMS', 'PNK'].includes(exchange));
-
-                return isLikelyIndian;
+                // Strictly limit to NSE and BSE to avoid European/US matches
+                return isNSE || isBSE;
             });
             console.log('Filtered Results:', filtered);
             return filtered;
