@@ -31,7 +31,7 @@ const Login: React.FC = () => {
 
             login(data.token, data.user);
         } catch (err: any) {
-            setError(err.message);
+            setError(`${err.message} (Target: ${API_URL})`);
         } finally {
             setLoading(false);
         }
