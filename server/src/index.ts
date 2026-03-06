@@ -4,6 +4,7 @@ import cors from 'cors';
 import YahooFinance from 'yahoo-finance2';
 import mongoose from 'mongoose';
 import Holding from './models/Holding';
+import authRouter, { authenticateToken } from './auth';
 
 const app = express();
 const port = process.env.PORT || 3002;
@@ -13,6 +14,9 @@ const yahooFinance = new YahooFinance({
 
 app.use(cors());
 app.use(express.json());
+
+// Main Auth Endpoints
+app.use('/api/auth', authRouter);
 
 // MongoDB Connection
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/portfolio-db';
@@ -24,9 +28,15 @@ mongoose.connect(MONGO_URI)
 // API Endpoints
 
 // Get all holdings
-app.get('/api/holdings', async (req, res) => {
+app.get('/api/holdings', authenticateToken, async (req: any, res: any) => {
     try {
-        const holdings = await Holding.find().sort({ createdAt: -1 });
+        // Scope the query if the user is not an admin
+        let query = {};
+        if (req.user.role === 'user') {
+            query = { owner: req.user.portfolioOwnerName };
+        }
+
+        const holdings = await Holding.find(query).sort({ createdAt: -1 });
         res.json(holdings);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch holdings' });
@@ -34,15 +44,19 @@ app.get('/api/holdings', async (req, res) => {
 });
 
 // Add new holding
-app.post('/api/holdings', async (req, res) => {
+app.post('/api/holdings', authenticateToken, async (req: any, res: any) => {
     try {
         const { ticker, qty, avgCost, purchaseDate, owner, lastPrice, previousClose, name } = req.body;
+
+        // Enforce owner scope for standard users
+        const finalOwner = req.user.role === 'admin' ? (owner || 'Default User') : req.user.portfolioOwnerName;
+
         const newHolding = new Holding({
             ticker: ticker.toUpperCase(),
             qty,
             avgCost,
             purchaseDate: purchaseDate || new Date(),
-            owner: owner || 'Default User',
+            owner: finalOwner,
             lastPrice,
             previousClose,
             name
@@ -56,7 +70,7 @@ app.post('/api/holdings', async (req, res) => {
 });
 
 // Sell holding (FIFO deduction)
-app.post('/api/holdings/sell', async (req, res) => {
+app.post('/api/holdings/sell', authenticateToken, async (req: any, res: any) => {
     try {
         const { ticker, qty, rate, date, owner } = req.body;
 
@@ -64,8 +78,11 @@ app.post('/api/holdings/sell', async (req, res) => {
             return res.status(400).json({ error: 'Invalid sell parameters' });
         }
 
+        // Enforce scope: User can only sell their own stocks
+        const finalOwner = req.user.role === 'admin' ? owner : req.user.portfolioOwnerName;
+
         // Find all holdings for this ticker and owner, sorted by purchaseDate (FIFO)
-        const holdings = await Holding.find({ ticker: ticker.toUpperCase(), owner }).sort({ purchaseDate: 1 });
+        const holdings = await Holding.find({ ticker: ticker.toUpperCase(), owner: finalOwner }).sort({ purchaseDate: 1 });
 
         const totalOwned = holdings.reduce((sum, h) => sum + h.qty, 0);
         if (qty > totalOwned) {
@@ -97,12 +114,22 @@ app.post('/api/holdings/sell', async (req, res) => {
 });
 
 // Edit holding
-app.put('/api/holdings/:id', async (req, res) => {
+app.put('/api/holdings/:id', authenticateToken, async (req: any, res: any) => {
     try {
+        // Extra check: If user, ensure they own the holding they are trying to edit
+        if (req.user.role === 'user') {
+            const existing = await Holding.findById(req.params.id);
+            if (!existing || existing.owner !== req.user.portfolioOwnerName) {
+                return res.status(403).json({ error: 'Unauthorized to edit this holding' });
+            }
+        }
+
         const { qty, avgCost, purchaseDate, owner, lastPrice, previousClose, name } = req.body;
+        const finalOwner = req.user.role === 'admin' ? owner : req.user.portfolioOwnerName;
+
         const updatedHolding = await Holding.findByIdAndUpdate(
             req.params.id,
-            { qty, avgCost, purchaseDate, owner, lastPrice, previousClose, name },
+            { qty, avgCost, purchaseDate, owner: finalOwner, lastPrice, previousClose, name },
             { new: true } // Returns the modified document rather than the original
         );
 
@@ -117,8 +144,16 @@ app.put('/api/holdings/:id', async (req, res) => {
 });
 
 // Delete holding
-app.delete('/api/holdings/:id', async (req, res) => {
+app.delete('/api/holdings/:id', authenticateToken, async (req: any, res: any) => {
     try {
+        // Extra check: If user, ensure they own the holding they are trying to delete
+        if (req.user.role === 'user') {
+            const existing = await Holding.findById(req.params.id);
+            if (!existing || existing.owner !== req.user.portfolioOwnerName) {
+                return res.status(403).json({ error: 'Unauthorized to delete this holding' });
+            }
+        }
+
         await Holding.findByIdAndDelete(req.params.id);
         res.json({ message: 'Holding deleted' });
     } catch (error) {
@@ -127,7 +162,7 @@ app.delete('/api/holdings/:id', async (req, res) => {
 });
 
 // Cache prices from frontend
-app.put('/api/holdings/cache-prices', async (req, res) => {
+app.put('/api/holdings/cache-prices', authenticateToken, async (req: any, res: any) => {
     try {
         const { updates } = req.body;
         if (updates && Array.isArray(updates)) {
@@ -148,7 +183,7 @@ app.put('/api/holdings/cache-prices', async (req, res) => {
     }
 });
 
-app.get('/api/quote/:ticker', async (req, res) => {
+app.get('/api/quote/:ticker', authenticateToken, async (req: any, res: any) => {
     try {
         const { ticker } = req.params;
         let quote;
@@ -218,7 +253,7 @@ app.get('/api/quote/:ticker', async (req, res) => {
 });
 
 // Get historical data for charts
-app.post('/api/history', async (req, res) => {
+app.post('/api/history', authenticateToken, async (req: any, res: any) => {
     try {
         const { tickers, range = '1mo' } = req.body; // Expects an array of ticker strings
 
@@ -270,37 +305,38 @@ app.post('/api/history', async (req, res) => {
     }
 });
 
-app.get('/api/search', async (req, res) => {
+app.get('/api/search', authenticateToken, async (req: any, res: any) => {
     try {
         const query = req.query.q as string;
         if (!query) {
             return res.status(400).json({ error: 'Query parameter "q" is required' });
         }
 
-        const searchOptions = { quotesCount: 15, newsCount: 0 };
+        const searchOptions = { quotesCount: 40, newsCount: 0 };
         const resultsRaw = await yahooFinance.search(query, searchOptions);
         let combinedQuotes = (resultsRaw.quotes || []).filter((q: any) => q.quoteType === 'EQUITY' || q.quoteType === 'ETF');
 
-        // To prioritize Indian stocks, if the user hasn't specified an exchange suffix, search directly with exchange keywords
+        // To prioritize Indian stocks, if the user hasn't specified an exchange suffix, search directly with exchange suffixes
+        // This is much better for partial queries like "VOLTA" than "VOLTA NSE"
         if (!query.includes('.')) {
             try {
-                const resultsNSE = await yahooFinance.search(`${query} NSE`, searchOptions);
+                const resultsNSE = await yahooFinance.search(`${query}.NS`, searchOptions);
                 if (resultsNSE.quotes) {
                     const validNSEQuotes = resultsNSE.quotes.filter((q: any) => q.quoteType === 'EQUITY' || q.quoteType === 'ETF');
                     combinedQuotes = [...combinedQuotes, ...validNSEQuotes];
                 }
             } catch (e) {
-                console.warn(`Failed NSE keyword search for ${query}`);
+                console.warn(`Failed .NS search for ${query}`);
             }
 
             try {
-                const resultsBSE = await yahooFinance.search(`${query} BSE`, searchOptions);
+                const resultsBSE = await yahooFinance.search(`${query}.BO`, searchOptions);
                 if (resultsBSE.quotes) {
                     const validBSEQuotes = resultsBSE.quotes.filter((q: any) => q.quoteType === 'EQUITY' || q.quoteType === 'ETF');
                     combinedQuotes = [...combinedQuotes, ...validBSEQuotes];
                 }
             } catch (e) {
-                console.warn(`Failed BSE keyword search for ${query}`);
+                console.warn(`Failed .BO search for ${query}`);
             }
 
             // Special fallback for Tata companies

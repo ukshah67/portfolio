@@ -19,7 +19,7 @@ function App() {
               </div>
               <h1 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-blue-500 bg-clip-text text-transparent flex items-baseline">
                 Portfolio Manager
-                <span className="text-xs text-slate-400 font-normal ml-3 tracking-normal hidden sm:inline-block">v1.2 (Mar 6 Update)</span>
+                <span className="text-xs text-slate-400 font-normal ml-3 tracking-normal hidden sm:inline-block">v1.3 (Mar 6 Update)</span>
               </h1>
             </div>
             {/* The new owner selector that uses Context (must be inside Provider ideally, so moved down) */}
