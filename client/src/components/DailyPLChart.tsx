@@ -28,7 +28,7 @@ const DailyPLChart: React.FC = () => {
     const [range, setRange] = useState<'7d' | '30d' | '120d' | '180d'>('30d');
     const [hiddenLines, setHiddenLines] = useState<Record<string, boolean>>({});
 
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
+    const API_URL = import.meta.env.VITE_API_URL || 'https://portfolio-backend-6tqz.onrender.com';
 
     // Initialize hidden lines (hide all individual stocks by default)
     useEffect(() => {

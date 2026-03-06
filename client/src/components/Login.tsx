@@ -9,7 +9,7 @@ const Login: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const { login } = useAuth();
 
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
+    const API_URL = import.meta.env.VITE_API_URL || 'https://portfolio-backend-6tqz.onrender.com';
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();

@@ -36,7 +36,7 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
     const [owners, setOwners] = useState<string[]>([]);
     const { token, logout } = useAuth();
 
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
+    const API_URL = import.meta.env.VITE_API_URL || 'https://portfolio-backend-6tqz.onrender.com';
 
     const getHeaders = (includesJson = false) => {
         const headers: any = {};
