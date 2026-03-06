@@ -16,8 +16,8 @@ const yahooFinance = new YahooFinance({
 app.use(cors());
 app.use(express.json());
 
-// Main Auth Endpoints - Public login, protected register/users (New Mount Mar 6)
-app.use('/api/portfolio-auth', authRouter);
+// Main Auth Endpoints - Public login, protected register/users (Fix applied Mar 6)
+app.use('/api/auth', authRouter);
 
 // MongoDB Connection
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/portfolio-db';
