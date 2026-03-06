@@ -7,18 +7,18 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_change_in_production';
 
 // Middleware for authentication
-export const authenticateToken = (req: any, res: any, next: any) => {
+export function authenticateToken(req: any, res: any, next: any) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
-    if (!token) return res.status(401).json({ error: 'Access token required [DEBUG-1951]' });
+    if (!token) return res.status(401).json({ error: 'Access token required' });
 
     jsonwebtoken.verify(token, JWT_SECRET, (err: any, user: any) => {
         if (err) return res.status(403).json({ error: 'Invalid or expired token' });
         req.user = user;
         next();
     });
-};
+}
 
 // Initial setup route to create the very first admin if none exists (safeguard)
 router.post('/setup-admin', async (req, res) => {

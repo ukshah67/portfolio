@@ -31,7 +31,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
 
     const fetchUsers = async () => {
         try {
-            const response = await fetch(`${API_URL}/api/auth/users`, {
+            const response = await fetch(`${API_URL}/api/portfolio-auth/users`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!response.ok) throw new Error('Failed to fetch users');
@@ -57,7 +57,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
         setCreating(true);
 
         try {
-            const response = await fetch(`${API_URL}/api/auth/register`, {
+            const response = await fetch(`${API_URL}/api/portfolio-auth/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
