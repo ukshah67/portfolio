@@ -42,7 +42,7 @@ const Login: React.FC = () => {
             <div className="max-w-md w-full bg-white rounded-xl shadow-lg border border-slate-100 p-8">
                 <div className="text-center mb-8 relative">
                     <div className="absolute -top-4 -right-4 bg-slate-800 text-white text-[10px] font-bold px-2 py-0.5 rounded-full ring-2 ring-white shadow-sm">
-                        v1.5
+                        v1.6
                     </div>
                     <div className="mx-auto bg-blue-600 p-3 rounded-xl inline-block mb-4 text-white shadow-md shadow-blue-200">
                         <Lock size={32} />

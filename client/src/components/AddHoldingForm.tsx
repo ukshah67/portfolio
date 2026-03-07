@@ -25,7 +25,7 @@ const AddHoldingForm: React.FC = () => {
     useEffect(() => {
         const delayDebounceFn = setTimeout(async () => {
             console.log('Debounce triggered for:', ticker);
-            if (ticker.length > 1) { // lowered from 2 to 1 for faster feedback
+            if (ticker.trim().length >= 3) { // triggers search after 3rd char
                 console.log('Calling searchTicker...');
                 const results = await searchTicker(ticker);
                 console.log('Search results:', results);
@@ -158,7 +158,7 @@ const AddHoldingForm: React.FC = () => {
                         <Search className="absolute left-4 top-5 text-slate-400" size={24} />
 
                         {showDropdown && suggestions.length > 0 && (
-                            <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-96 overflow-y-auto">
+                            <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-[300px] overflow-y-scroll">
                                 {suggestions.map((s) => (
                                     <button
                                         key={s.symbol}

@@ -147,24 +147,7 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
             const data = await response.json();
             console.log('Search Raw Data:', data);
             const quotes = data.quotes || [];
-            const filtered = quotes.filter((q: any) => {
-                const hasSymbol = q && typeof q.symbol === 'string';
-                if (!hasSymbol) return false;
-
-                // The backend already appends 'NSE'/'BSE' to non-suffixed queries to force Indian results.
-                // We just need to make sure we don't accidentally show obvious international exchanges
-                // like NYQ or NMS if Yahoo returned them as secondary results.
-                const validExchanges = ['NSI', 'BOM', 'NSE', 'BSE'];
-                const exchange = q.exchange ? q.exchange.toUpperCase() : '';
-
-                const isNSE = validExchanges.includes(exchange) || q.symbol.endsWith('.NS');
-                const isBSE = validExchanges.includes(exchange) || q.symbol.endsWith('.BO');
-
-                // Strictly limit to NSE and BSE to avoid European/US matches
-                return isNSE || isBSE;
-            });
-            console.log('Filtered Results:', filtered);
-            return filtered;
+            return quotes;
         } catch (error) {
             console.error(`Error searching ticker ${query}:`, error);
             return [];

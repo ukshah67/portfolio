@@ -30,7 +30,7 @@ const AuthenticatedApp = () => {
               </div>
               <h1 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-blue-500 bg-clip-text text-transparent flex items-baseline">
                 Portfolio Manager
-                <span className="text-xs text-slate-400 font-normal ml-3 tracking-normal hidden sm:inline-block">v1.4 (Mar 6 Update)</span>
+                <span className="text-xs text-slate-400 font-normal ml-3 tracking-normal hidden sm:inline-block">v1.6 (Mar 7 Update)</span>
               </h1>
             </div>
 
