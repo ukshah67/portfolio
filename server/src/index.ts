@@ -331,7 +331,8 @@ app.get('/api/search', authenticateToken, async (req: any, res: any) => {
         // 1. Instantly inject highly popular local Indian stocks if they match the query loosely
         const qUpper = query.toUpperCase();
         const exactMatches: any[] = [];
-        const partialMatches: any[] = [];
+        const startsWithMatches: any[] = [];
+        const includesMatches: any[] = [];
 
         for (const s of indianStocks) {
             const sym = s.symbol.toUpperCase();
@@ -341,15 +342,29 @@ app.get('/api/search', authenticateToken, async (req: any, res: any) => {
             if (baseSym === qUpper || name === qUpper || sym === qUpper) {
                 exactMatches.push(s);
             } else if (baseSym.startsWith(qUpper) || name.startsWith(qUpper)) {
-                partialMatches.push(s);
+                startsWithMatches.push(s);
             } else if (sym.includes(qUpper) || name.includes(qUpper)) {
-                partialMatches.push(s);
+                includesMatches.push(s);
             }
-
-            if (exactMatches.length > 20 && partialMatches.length > 20) break;
         }
 
-        const localMatches = [...exactMatches, ...partialMatches].slice(0, 40);
+        // Handle common user aliases
+        const aliases: Record<string, string> = {
+            'RIL': 'RELIANCE.NS',
+            'HUL': 'HINDUNILVR.NS',
+            'DIVI': 'DIVISLAB.NS',
+            'DIVIS': 'DIVISLAB.NS'
+        };
+
+        if (aliases[qUpper]) {
+            const aliasSym = aliases[qUpper];
+            const aliasMatch = indianStocks.find(s => s.symbol === aliasSym);
+            if (aliasMatch) {
+                exactMatches.unshift(aliasMatch);
+            }
+        }
+
+        const localMatches = [...exactMatches, ...startsWithMatches, ...includesMatches].slice(0, 100);
 
         // Add local matches first to guarantee they appear at the top
         combinedQuotes = [...localMatches, ...combinedQuotes];

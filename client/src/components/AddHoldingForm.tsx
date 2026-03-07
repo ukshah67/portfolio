@@ -158,7 +158,7 @@ const AddHoldingForm: React.FC = () => {
                         <Search className="absolute left-4 top-5 text-slate-400" size={24} />
 
                         {showDropdown && suggestions.length > 0 && (
-                            <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-auto">
+                            <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-96 overflow-y-auto">
                                 {suggestions.map((s) => (
                                     <button
                                         key={s.symbol}
