@@ -324,11 +324,6 @@ app.get('/api/search', authenticateToken, async (req: any, res: any) => {
             return res.status(400).json({ error: 'Query parameter "q" is required' });
         }
 
-        const searchOptions = { quotesCount: 40, newsCount: 0 };
-        const resultsRaw = await yahooFinance.search(query, searchOptions);
-        let combinedQuotes = (resultsRaw.quotes || []).filter((q: any) => q.quoteType === 'EQUITY' || q.quoteType === 'ETF');
-
-        // 1. Instantly inject highly popular local Indian stocks if they match the query loosely
         const qUpper = query.toUpperCase();
         const exactMatches: any[] = [];
         const startsWithMatches: any[] = [];
@@ -348,7 +343,6 @@ app.get('/api/search', authenticateToken, async (req: any, res: any) => {
             }
         }
 
-        // Handle common user aliases
         const aliases: Record<string, string> = {
             'RIL': 'RELIANCE.NS',
             'HUL': 'HINDUNILVR.NS',
@@ -365,12 +359,19 @@ app.get('/api/search', authenticateToken, async (req: any, res: any) => {
         }
 
         const localMatches = [...exactMatches, ...startsWithMatches, ...includesMatches].slice(0, 100);
+        let combinedQuotes = [...localMatches];
 
-        // Add local matches first to guarantee they appear at the top
-        combinedQuotes = [...localMatches, ...combinedQuotes];
+        // 2. Fetch from Yahoo Finance as a supplementary fallback
+        const searchOptions = { quotesCount: 40, newsCount: 0 };
 
-        // To prioritize Indian stocks, if the user hasn't specified an exchange suffix, search directly with exchange suffixes
-        // This is much better for partial queries like "VOLTA" than "VOLTA NSE"
+        try {
+            const resultsRaw = await yahooFinance.search(query, searchOptions);
+            const validGlobal = (resultsRaw.quotes || []).filter((q: any) => q.quoteType === 'EQUITY' || q.quoteType === 'ETF');
+            combinedQuotes = [...combinedQuotes, ...validGlobal];
+        } catch (e) {
+            console.warn(`Yahoo Finance primary search failed for ${query}, relying on local database.`);
+        }
+
         if (!query.includes('.')) {
             try {
                 const resultsNSE = await yahooFinance.search(`${query}.NS`, searchOptions);
@@ -379,7 +380,7 @@ app.get('/api/search', authenticateToken, async (req: any, res: any) => {
                     combinedQuotes = [...combinedQuotes, ...validNSEQuotes];
                 }
             } catch (e) {
-                console.warn(`Failed .NS search for ${query}`);
+                console.warn(`Failed .NS fallback search for ${query}`);
             }
 
             try {
@@ -389,10 +390,9 @@ app.get('/api/search', authenticateToken, async (req: any, res: any) => {
                     combinedQuotes = [...combinedQuotes, ...validBSEQuotes];
                 }
             } catch (e) {
-                console.warn(`Failed .BO search for ${query}`);
+                console.warn(`Failed .BO fallback search for ${query}`);
             }
 
-            // Special fallback for Tata companies
             if (combinedQuotes.length === 0 && query.toUpperCase() === 'TATA') {
                 try {
                     const resultsTata = await yahooFinance.search(`TATAMOTORS.NS`, searchOptions);
