@@ -143,4 +143,34 @@ router.get('/users', authenticateToken, async (req, res) => {
     }
 });
 
+// Edit User (Admin Only)
+router.put('/users/:id', authenticateToken, async (req, res) => {
+    try {
+        if (!(req as any).user || (req as any).user.role !== 'admin') {
+            return res.status(403).json({ error: 'Admin privileges required' });
+        }
+
+        const { password, portfolioOwnerName } = req.body;
+        const user = await User.findById(req.params.id);
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        if (portfolioOwnerName !== undefined) {
+            user.portfolioOwnerName = portfolioOwnerName;
+        }
+
+        if (password && password.trim() !== '') {
+            user.password = await bcrypt.hash(password, 10);
+        }
+
+        await user.save();
+        res.json({ message: 'User updated successfully' });
+    } catch (error) {
+        console.error('Error updating user:', error);
+        res.status(500).json({ error: 'Failed to update user' });
+    }
+});
+
 export default router;

@@ -27,6 +27,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
     const [creating, setCreating] = useState(false);
     const [successMsg, setSuccessMsg] = useState('');
 
+    // Edit user state
+    const [editingUserId, setEditingUserId] = useState<string | null>(null);
+    const [editPassword, setEditPassword] = useState('');
+    const [editOwner, setEditOwner] = useState('');
+    const [isUpdating, setIsUpdating] = useState(false);
+
     const API_URL = import.meta.env.VITE_API_URL || 'https://portfolio-backend-6tqz.onrender.com';
 
     const fetchUsers = async () => {
@@ -49,6 +55,50 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
             fetchUsers();
         }
     }, [isAdmin]);
+
+    const startEdit = (user: UserData) => {
+        setEditingUserId(user._id);
+        setEditPassword(''); // Blank means keep existing password
+        setEditOwner(user.portfolioOwnerName || '');
+    };
+
+    const cancelEdit = () => {
+        setEditingUserId(null);
+    };
+
+    const handleUpdateUser = async (e: React.FormEvent, userId: string) => {
+        e.preventDefault();
+        setError('');
+        setSuccessMsg('');
+        setIsUpdating(true);
+
+        try {
+            const response = await fetch(`${API_URL}/api/auth/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    password: editPassword,
+                    portfolioOwnerName: editOwner
+                })
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Failed to update user');
+
+            setSuccessMsg('User updated successfully!');
+            setEditingUserId(null);
+            fetchUsers(); // Refresh list
+
+            setTimeout(() => setSuccessMsg(''), 3000);
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsUpdating(false);
+        }
+    };
 
     const handleCreateUser = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -183,26 +233,69 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
                                             <th className="p-3 font-medium">Role</th>
                                             <th className="p-3 font-medium">Linked Owner</th>
                                             <th className="p-3 font-medium">Created On</th>
+                                            <th className="p-3 font-medium text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="text-sm p-4 divide-y divide-slate-100">
                                         {users.map(user => (
                                             <tr key={user._id} className="hover:bg-slate-50">
-                                                <td className="p-3 pl-4 font-medium text-slate-800 flex items-center gap-2">
-                                                    {user.username}
-                                                    {user.role === 'admin' && <Shield size={14} className="text-amber-500" />}
-                                                </td>
-                                                <td className="p-3">
-                                                    <span className={`px-2 py-1 rounded text-xs font-semibold ${user.role === 'admin' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}`}>
-                                                        {user.role.toUpperCase()}
-                                                    </span>
-                                                </td>
-                                                <td className="p-3 text-slate-600">
-                                                    {user.portfolioOwnerName || <span className="text-slate-400 italic">None (Admin)</span>}
-                                                </td>
-                                                <td className="p-3 text-slate-500">
-                                                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
-                                                </td>
+                                                {editingUserId === user._id ? (
+                                                    <td colSpan={5} className="p-3 bg-blue-50/50">
+                                                        <form onSubmit={(e) => handleUpdateUser(e, user._id)} className="flex items-center gap-3">
+                                                            <div className="flex-1 px-1">
+                                                                <span className="font-semibold text-slate-800">{user.username}</span>
+                                                            </div>
+                                                            <div className="flex-1">
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="New Password (blank to keep)"
+                                                                    className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                                    value={editPassword}
+                                                                    onChange={(e) => setEditPassword(e.target.value)}
+                                                                />
+                                                            </div>
+                                                            <div className="flex-1">
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Portfolio Owner Name"
+                                                                    className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                                    value={editOwner}
+                                                                    onChange={(e) => setEditOwner(e.target.value)}
+                                                                />
+                                                            </div>
+                                                            <div className="flex gap-2 justify-end w-32">
+                                                                <button type="submit" disabled={isUpdating} className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs font-medium">Save</button>
+                                                                <button type="button" onClick={cancelEdit} className="px-3 py-1.5 bg-slate-200 text-slate-700 rounded hover:bg-slate-300 text-xs font-medium">Cancel</button>
+                                                            </div>
+                                                        </form>
+                                                    </td>
+                                                ) : (
+                                                    <React.Fragment>
+                                                        <td className="p-3 pl-4 font-medium text-slate-800 flex items-center gap-2">
+                                                            {user.username}
+                                                            {user.role === 'admin' && <Shield size={14} className="text-amber-500" />}
+                                                        </td>
+                                                        <td className="p-3">
+                                                            <span className={`px-2 py-1 rounded text-xs font-semibold ${user.role === 'admin' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}`}>
+                                                                {user.role.toUpperCase()}
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-3 text-slate-600">
+                                                            {user.portfolioOwnerName || <span className="text-slate-400 italic">None (Admin)</span>}
+                                                        </td>
+                                                        <td className="p-3 text-slate-500 text-xs">
+                                                            {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                                                        </td>
+                                                        <td className="p-3 text-right">
+                                                            <button
+                                                                onClick={() => startEdit(user)}
+                                                                className="text-blue-600 hover:text-blue-800 text-xs font-medium px-3 py-1 rounded hover:bg-blue-50 transition-colors"
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                        </td>
+                                                    </React.Fragment>
+                                                )}
                                             </tr>
                                         ))}
                                     </tbody>

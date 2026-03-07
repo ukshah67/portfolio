@@ -5,7 +5,18 @@ import YahooFinance from 'yahoo-finance2';
 import mongoose from 'mongoose';
 import Holding from './models/Holding';
 import authRouter, { authenticateToken } from './auth';
-import { COMMON_STOCKS } from './commonStocks';
+import fs from 'fs';
+import path from 'path';
+
+// Load Indian Stocks DB once on startup
+let indianStocks: any[] = [];
+try {
+    const rawData = fs.readFileSync(path.join(__dirname, 'indianStocks.json'), 'utf8');
+    indianStocks = JSON.parse(rawData);
+    console.log(`Loaded ${indianStocks.length} Indian stocks into local search engine.`);
+} catch (e) {
+    console.error('Failed to load indianStocks.json', e);
+}
 
 const app = express();
 const port = process.env.PORT || 3002;
@@ -319,10 +330,26 @@ app.get('/api/search', authenticateToken, async (req: any, res: any) => {
 
         // 1. Instantly inject highly popular local Indian stocks if they match the query loosely
         const qUpper = query.toUpperCase();
-        const localMatches: any[] = COMMON_STOCKS.filter(s =>
-            s.symbol.toUpperCase().includes(qUpper) ||
-            s.shortname.toUpperCase().includes(qUpper)
-        );
+        const exactMatches: any[] = [];
+        const partialMatches: any[] = [];
+
+        for (const s of indianStocks) {
+            const sym = s.symbol.toUpperCase();
+            const name = s.shortname.toUpperCase();
+            const baseSym = sym.split('.')[0];
+
+            if (baseSym === qUpper || name === qUpper || sym === qUpper) {
+                exactMatches.push(s);
+            } else if (baseSym.startsWith(qUpper) || name.startsWith(qUpper)) {
+                partialMatches.push(s);
+            } else if (sym.includes(qUpper) || name.includes(qUpper)) {
+                partialMatches.push(s);
+            }
+
+            if (exactMatches.length > 20 && partialMatches.length > 20) break;
+        }
+
+        const localMatches = [...exactMatches, ...partialMatches].slice(0, 40);
 
         // Add local matches first to guarantee they appear at the top
         combinedQuotes = [...localMatches, ...combinedQuotes];
