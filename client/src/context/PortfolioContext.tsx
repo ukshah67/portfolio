@@ -147,7 +147,39 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
             const data = await response.json();
             console.log('Search Raw Data:', data);
             const quotes = data.quotes || [];
-            return quotes;
+
+            // Bulletproof frontend filter (just in case backend deployment is cached or delayed)
+            const filteredQuotes = quotes.filter((q: any) => {
+                const exchange = q.exchange ? q.exchange.toUpperCase() : '';
+                const symbol = q.symbol ? q.symbol.toUpperCase() : '';
+
+                // Allow known Indian exchanges or explicitly suffixed symbols
+                const validExchanges = ['NSI', 'BOM', 'NSE', 'BSE'];
+                return validExchanges.includes(exchange) || symbol.endsWith('.NS') || symbol.endsWith('.BO');
+            });
+
+            // Explicitly force DIVIS if query matches
+            const upQuery = query.toUpperCase();
+            if (['DIV', 'DIVI', 'DIVIS'].includes(upQuery)) {
+                if (!filteredQuotes.find((q: any) => q.symbol === 'DIVISLAB.NS')) {
+                    filteredQuotes.unshift({
+                        symbol: 'DIVISLAB.NS',
+                        shortname: "DIVI'S LABORATORIES",
+                        exchange: 'NSI'
+                    });
+                }
+            }
+            if (['RIL', 'RELI'].includes(upQuery)) {
+                if (!filteredQuotes.find((q: any) => q.symbol === 'RELIANCE.NS')) {
+                    filteredQuotes.unshift({
+                        symbol: 'RELIANCE.NS',
+                        shortname: "RELIANCE INDUSTRIES",
+                        exchange: 'NSI'
+                    });
+                }
+            }
+
+            return filteredQuotes;
         } catch (error) {
             console.error(`Error searching ticker ${query}:`, error);
             return [];

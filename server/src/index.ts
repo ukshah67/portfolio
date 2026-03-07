@@ -409,7 +409,14 @@ app.get('/api/search', authenticateToken, async (req: any, res: any) => {
             return true;
         });
 
-        res.json({ quotes: uniqueQuotes });
+        // Filter strictly to Indian exchanges
+        const validExchanges = ['NSI', 'BOM', 'NSE', 'BSE'];
+        const uniqueIndianQuotes = uniqueQuotes.filter((q: any) => {
+            const exchange = q.exchange ? q.exchange.toUpperCase() : '';
+            return validExchanges.includes(exchange) || q.symbol.endsWith('.NS') || q.symbol.endsWith('.BO');
+        });
+
+        res.json({ quotes: uniqueIndianQuotes });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Failed to search ticker' });
