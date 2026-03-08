@@ -358,6 +358,11 @@ app.get('/api/search', authenticateToken, async (req: any, res: any) => {
             }
         }
 
+        const sortByLength = (a: any, b: any) => (a.shortname || '').length - (b.shortname || '').length;
+        exactMatches.sort(sortByLength);
+        startsWithMatches.sort(sortByLength);
+        includesMatches.sort(sortByLength);
+
         const localMatches = [...exactMatches, ...startsWithMatches, ...includesMatches].slice(0, 100);
         let combinedQuotes = [...localMatches];
 
@@ -409,9 +414,10 @@ app.get('/api/search', authenticateToken, async (req: any, res: any) => {
             return true;
         });
 
-        // Filter strictly to Indian exchanges
+        // Filter strictly to Indian exchanges (CRITICAL: Be crash-proof against malformed Yahoo objects)
         const validExchanges = ['NSI', 'BOM', 'NSE', 'BSE'];
         const uniqueIndianQuotes = uniqueQuotes.filter((q: any) => {
+            if (!q || !q.symbol) return false; // Prevent TypeError on undefined
             const exchange = q.exchange ? q.exchange.toUpperCase() : '';
             return validExchanges.includes(exchange) || q.symbol.endsWith('.NS') || q.symbol.endsWith('.BO');
         });
