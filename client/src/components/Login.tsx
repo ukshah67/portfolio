@@ -7,6 +7,7 @@ const Login: React.FC = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [slowLogin, setSlowLogin] = useState(false); // To detect Render cold starts
     const { login } = useAuth();
 
     const API_URL = import.meta.env.VITE_API_URL || 'https://portfolio-backend-6tqz.onrender.com';
@@ -15,6 +16,12 @@ const Login: React.FC = () => {
         e.preventDefault();
         setError('');
         setLoading(true);
+        setSlowLogin(false);
+
+        // Render free tier spins down after 15 minutes. Warn user if it's taking >3s to wake up.
+        const coldStartTimer = setTimeout(() => {
+            setSlowLogin(true);
+        }, 3000);
 
         try {
             const response = await fetch(`${API_URL}/api/auth/login`, {
@@ -33,7 +40,9 @@ const Login: React.FC = () => {
         } catch (err: any) {
             setError(err.message);
         } finally {
+            clearTimeout(coldStartTimer);
             setLoading(false);
+            setSlowLogin(false);
         }
     };
 
@@ -99,6 +108,17 @@ const Login: React.FC = () => {
                     >
                         {loading ? 'Signing in...' : 'Sign In'}
                     </button>
+
+                    {slowLogin && (
+                        <div className="text-center mt-4 p-3 bg-amber-50 rounded-lg border border-amber-100 animate-pulse">
+                            <p className="text-amber-700 text-xs font-medium">
+                                Waking up secure server...
+                            </p>
+                            <p className="text-amber-600/80 text-[10px] mt-1">
+                                (Can take up to 45s after periods of inactivity on free tier)
+                            </p>
+                        </div>
+                    )}
                 </form>
             </div>
         </div>
