@@ -111,11 +111,8 @@ const Login: React.FC = () => {
 
                     {slowLogin && (
                         <div className="text-center mt-4 p-3 bg-amber-50 rounded-lg border border-amber-100 animate-pulse">
-                            <p className="text-amber-700 text-xs font-medium">
-                                Waking up secure server...
-                            </p>
-                            <p className="text-amber-600/80 text-[10px] mt-1">
-                                (Can take up to 45s after periods of inactivity on free tier)
+                            <p className="text-amber-700 text-sm font-medium">
+                                Please wait .... it may take 40-45 seconds
                             </p>
                         </div>
                     )}
