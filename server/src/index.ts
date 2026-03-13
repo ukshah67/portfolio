@@ -295,13 +295,13 @@ app.post('/api/history', authenticateToken, async (req: any, res: any) => {
                         startDate.setDate(startDate.getDate() - 30); // Default 30 days
                 }
 
-                const recentHistory = await yahooFinance.historical(ticker, {
+                const result = await yahooFinance.chart(ticker, {
                     period1: startDate,
                     period2: new Date(),
                     interval: '1d'
                 });
 
-                return { ticker, data: recentHistory };
+                return { ticker, data: result.quotes || [] };
             } catch (err) {
                 console.error(`Error fetching history for ${ticker}:`, err);
                 return { ticker, data: [] }; // Return empty data on error so Promise.all succeeds
