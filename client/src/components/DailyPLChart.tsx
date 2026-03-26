@@ -89,6 +89,10 @@ const DailyPLChart: React.FC = () => {
                             }
 
                             const existing = dateMap.get(dateKey)!;
+                            // Prevent double-counting if API returns multiple intraday points for the same date
+                            if (existing[ticker] !== undefined) {
+                                existing.totalValue -= existing[ticker];
+                            }
                             existing.totalValue += dayValue;
                             existing[ticker] = dayValue; // Save individual stock value
                         });
